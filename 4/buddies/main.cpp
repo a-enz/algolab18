@@ -1,9 +1,3 @@
-// could probably be made faster by using bit operations:
-// represent the set of each student by a bit-array (number)
-// to compute intersection of sets do bitwise and '&' and count
-// number of '1' in result string.
-// Problem: need bit array of size 100, which means we cannot just
-// use a basic data type like double
 #include <iostream>
 #include <vector>
 #include <map>
@@ -43,21 +37,25 @@ void testcase() {
 
 	//for each possible pair of student intersect the characteristics
 	//set and check if it is larger than f, if yes add edge to G
-
 	for(int i=0; i<V; i++) {
-		for(int j=0; j<V; j++) {
+		for(int j=i+1; j<V; j++) {
 			vector<string> result(c);
 			vector<string>::iterator result_it;
 			//compute intersection
-			result_it = std::set_intersection(chara[i].begin(), chara[i].end(),
-									chara[j].begin(), chara[j].end(),
-									result.begin()
-								);
 
-			result.resize(result_it - result.begin());
+			//check for common characteristics in
+			//O(100*log(100)) time
+			int common_count = 0;
+			for(set<string>::iterator it = chara[i].begin();
+				it != chara[i].end();
+				it++) {
+				if(chara[j].find(*it) != chara[j].end()) {
+					common_count++;
+				}
+			}
 
 			//add edge
-			if(result.size() > f){
+			if(common_count > f){
 				add_edge(i, j, G);
 			}
 		}
@@ -68,7 +66,6 @@ void testcase() {
 	edmonds_maximum_cardinality_matching(G, 
 		make_iterator_property_map(matemap.begin(), get(vertex_index, G)));
 
-	const Vertex NULL_VERTEX = graph_traits<Graph>::null_vertex();
 	int matchingsize = matching_size(G, make_iterator_property_map(matemap.begin(), get(vertex_index, G)));
 
 	//check that the matching size is half of the student count 
@@ -79,7 +76,7 @@ void testcase() {
 int main(void) {
 
 	//disable for performance
-	ios::sync_with_stdio(false);
+	ios_base::sync_with_stdio(false);
 	//read total number of test cases
 	int n_total_testcases;
 	cin >> n_total_testcases;
