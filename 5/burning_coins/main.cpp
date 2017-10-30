@@ -6,15 +6,17 @@
 
 using namespace std;
 
-map< pair<int, int>, int> memo;
+//use a fixed table as memo since we know it won't be too big
+//and access time is constant instead of logarithmic when using a map
+vector< vector<int> > memo(2500, vector<int>(2500,0));
 
 int maximize_money(int start, int end, const vector<int>& value_coin) {
-	pair<int, int> p = make_pair(start, end);
-	if(memo.find(p) == memo.end()) {
+	//pair<int, int> p = make_pair(start, end);
+	if(memo[start][end] == 0) { //no value stored yet
 
 		int length_remaining = end-start+1;
 		if(length_remaining<=2) { //for ==1 and ==2
-			memo[p] = max(value_coin[start], value_coin[end]);
+			memo[start][end] = max(value_coin[start], value_coin[end]);
 		}
 		else {
 			//we take the start coin
@@ -33,11 +35,11 @@ int maximize_money(int start, int end, const vector<int>& value_coin) {
 				min(maximize_money(start, end-2, value_coin), 
 					maximize_money(start+1, end-1, value_coin));
 
-			memo[p] =  max(variant_start_val, variant_end_val);
+			memo[start][end] =  max(variant_start_val, variant_end_val);
 		}
 	}
 
-	return memo[p];
+	return memo[start][end];
 }
 
 
@@ -45,7 +47,7 @@ void testcase() {
 	int n_coins;
 	cin >> n_coins;
 
-	memo = map< pair<int, int>, int>();
+	memo = vector< vector<int> >(2500, vector<int>(2500,0));
 
 	vector<int> value_coin(n_coins);
 
