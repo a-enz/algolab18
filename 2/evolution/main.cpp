@@ -1,10 +1,58 @@
 #include <iostream>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <cmath>
+#include <numeric>
+#include <string>
 #include <algorithm>
 
 using namespace std;
+
+int binary_search(const vector<int>& path, 
+					const vector<int>& species_age,
+					const int age_limit) {
+	//search on path of (species) nodes for species age
+	//that is the largest age <= age_limit
+	int higher=0, lower=path.size()-1;
+
+	while(higher != lower) {
+		int p = (higher+lower)/2;
+		if(species_age[path[p]] > age_limit)
+			higher = p+1;
+		else
+			lower = p;
+	}
+
+	return path[lower];
+}
+
+
+void dfs(const int u, 
+	const vector< vector<int> >& tree, 
+	vector<int>& path, 
+	const vector< vector< pair<int, int> > >& queries, 
+	vector<int>& results, 
+	const vector<int>& species_age) {
+
+	//process queries for u
+	for(int i=0; i<queries[u].size(); i++) {
+		//do binary search on path for age limit
+		int age_limit = queries[u][i].first;
+		int query_idx = queries[u][i].second;
+
+		results[query_idx] = binary_search(path, species_age, age_limit);
+	}
+
+	//continue dfs
+	for(int i=0; i<tree[u].size(); i++) {
+		int child = tree[u][i];
+		path.push_back(child);
+		dfs(child, tree, path, 
+			queries, results, species_age);
+	}
+
+	path.pop_back();
+}
 
 void testcase() {
 	int n_species, n_queries;
@@ -12,15 +60,16 @@ void testcase() {
 
 	//store names (essentially a map: idx-> name)
 	vector<string> species_name(n_species);
-	map<string, int> name_to_idx;
+	unordered_map<string, int> name_to_idx;
 	//species age
 	vector<int> species_age(n_species);
-	//store the tree by species ancestor
-	//luca (root) points to itself
-	vector<int> ancestor(n_species);
+	//build tree by storing children of parent
+	//in adjacency list
+	vector< vector<int> > tree(n_species, vector<int>());
 
-	//store queries as pair (name, age)
-	vector< pair<string, int> > queries(n_queries);
+	//for each species store a vector consisting of
+	//a pair (b, i) where b: age limit, i: query index
+	vector< vector< pair<int, int> > > queries(n_species);
 
 	//read age and create species idx map
 	int root_idx, max_age=0;
@@ -40,17 +89,12 @@ void testcase() {
 	}
 
 	//read tree
-	ancestor[root_idx] = root_idx;
 	for(int i=0; i<n_species-1; i++) {
+		string child, parent;
+		cin >> child >> parent;
 
-		string species, anc_species;
-		cin >> species >> anc_species;
-
-		ancestor[name_to_idx[species]] = name_to_idx[anc_species];
-
-/*		cout << "species " << species << ":" << name_to_idx[species] << " has ancestor "
-			<< anc_species << ":" << name_to_idx[anc_species] << endl;
-*/	}
+		tree[name_to_idx[parent]].push_back(name_to_idx[child]);
+	}
 
 
 	//read queries
@@ -59,34 +103,24 @@ void testcase() {
 		int age_limit;
 		cin >> species >> age_limit;
 
-		queries[i] = make_pair(species, age_limit);
+		queries[name_to_idx[species]].push_back(
+			make_pair(age_limit, i)
+		);
 	}
 
 
-	//naive solution
-	for(vector< pair<string, int> >::iterator q_it = queries.begin();
-		q_it != queries.end();
-		q_it++) {
+	//do dfs traversal and binary search on the paths
+	//if we reach a species we have a query for
+	//store query result in a vector
+	vector<int> results(n_queries);
+	//initialize path
+	vector<int> path;
+	path.push_back(root_idx);
+	dfs(root_idx, tree, path, queries, results, species_age);
 
-		int child_species = name_to_idx[q_it->first];
-		int age_limit = q_it->second;
-
-/*		cout << "age limit: " << age_limit << endl;
-*/
-		if(child_species == ancestor[child_species]) { //points to itself, in other words luca
-			cout << q_it->first << " "; //luca /root
-			continue;
-		}
-
-		int ancestor_species = ancestor[child_species];
-
-		while(child_species != ancestor_species &&
-			species_age[ancestor_species] <= age_limit) {
-			child_species = ancestor_species;
-			ancestor_species = ancestor[child_species];
-		}
-
-		cout << species_name[child_species] << " ";
+	//print result vector in the correct order
+	for(int i=0; i<n_queries; i++) {
+		cout << species_name[results[i]] << " ";
 	}
 
 	cout << endl;
