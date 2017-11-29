@@ -14,6 +14,13 @@ typedef Triangulation::Vertex_iterator	Vertex_iterator;
 typedef Triangulation::Vertex_circulator	Vertex_circulator;
 typedef K::Point_2	P;
 
+double ceil_to_double(const K::FT& x)
+{
+  double a = std::ceil(CGAL::to_double(x));
+  while (a < x) a += 1;
+  while (a-1 >= x) a -= 1;
+  return a;
+}
 
 void testcase(int n) {
 
@@ -28,7 +35,8 @@ void testcase(int n) {
 	t.insert(pts.begin(), pts.end());
 
 	K::FT min_dist = pow(2, 26);
-	//for every point, get nearest point
+	// iterate over all vertices and check incident
+	// vertices of the triangulation
 	for(Vertex_iterator v_it = t.finite_vertices_begin();
 		v_it != t.finite_vertices_end();
 		v_it++) {
@@ -38,7 +46,7 @@ void testcase(int n) {
 		Vertex_circulator c = t.incident_vertices(v_it);
 		do {
 			if(not t.is_infinite(c)) {
-				K::FT new_dist = 
+				K::FT new_dist =
 					CGAL::squared_distance(v_it->point(), c->point());
 				if(new_dist < min_dist){
 					min_dist = new_dist;
@@ -47,7 +55,12 @@ void testcase(int n) {
 		} while(++c != t.incident_vertices(v_it));
 	}
 
-	cout << CGAL::sqrt(min_dist) << endl;
+	// now that we have shortest distance
+	// compute the time it takes for them
+	// to meet in the middle, rounded up to next integer
+	int time = ceil_to_double(CGAL::sqrt(min_dist) * 50);
+
+	cout << time << endl;
 }
 
 int main(void) {
