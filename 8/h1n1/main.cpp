@@ -21,6 +21,7 @@ typedef Triangulation::Vertex_handle    Vertex_handle;
 
 bool finds_way_out(const Triangulation &t, const Face_handle &f, 
                 const double d, unordered_set<Face_handle> &visited) {
+    
     // check if we reached infinite face 
     if(t.is_infinite(f) || f == NULL) 
         return true;
@@ -37,9 +38,6 @@ bool finds_way_out(const Triangulation &t, const Face_handle &f,
         P p2 = f->vertex((i+1) % 3)->point();
         K::FT dist = CGAL::squared_distance(p1, p2);
 
-/*        cout << "distance between (" << p1 << "), (" << p2 <<
-            ") is " << dist << " and d=" << d << endl;
-*/
         Face_handle nf = f->neighbor((i+2) % 3);
 
         //check distance
@@ -70,11 +68,15 @@ bool can_escape(const Triangulation &t, const P& start, const double d) {
     else {
         // check if there is an escape route
         // do a bfs or dfs over all edges and try to get to
-        // the 'outside' by reaching infinite face or something
+        // the 'outside' by reaching infinite face
+
+        // locate starting face using a hint
         Face_handle f = t.locate(start, t.incident_faces(nearest)); 
 
+        //keep track of visited faces
         unordered_set<Face_handle> visited;
 
+        //do dfs
         return finds_way_out(t, f, d, visited);
     }
 }
