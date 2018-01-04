@@ -8,6 +8,7 @@
 #include <boost/graph/max_cardinality_matching.hpp>
 
 using namespace std;
+using namespace boost;
 
 
 // BGL Graph definitions
@@ -18,7 +19,7 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,     //
         boost::property<boost::edge_weight_t, int>      // interior properties of edges
         >                   Graph;
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,     // Use vecS for the VertexList! Choosing setS for the OutEdgeList disallows parallel edges.
-        boost::no_property,             // interior properties of vertices  
+        boost::no_property            // interior properties of vertices  
         >                   UndirGraph;
 typedef boost::graph_traits<Graph>::edge_descriptor     Edge;       // Edge Descriptor: an object that represents a single edge.
 typedef boost::graph_traits<Graph>::vertex_descriptor       Vertex;     // Vertex Descriptor: with vecS vertex list, this is really just an int in the range [0, num_vertices(G)).  
@@ -27,7 +28,7 @@ typedef boost::graph_traits<Graph>::out_edge_iterator       OutEdgeIt;  // to it
 typedef boost::property_map<Graph, boost::edge_weight_t>::type  WeightMap;  // property map to access the interior property edge_weight_t
 
 
-bool too_small(int duration, const vector< vector<int> > distances, int n_agents, int n_shelters) {
+bool too_small(int duration, const vector< vector<int> >& distances, int n_agents, int n_shelters) {
     //construct the graph
     UndirGraph T(n_agents + n_shelters);
     for (int i = 0; i < n_agents; ++i)
@@ -36,7 +37,7 @@ bool too_small(int duration, const vector< vector<int> > distances, int n_agents
         {
             int dist = distances[i][j];
             if(dist <= duration) {
-                add_edge(i, j+n_agents, T);
+                boost::add_edge(i, j+n_agents, T);
             }
         }
     }
@@ -45,7 +46,7 @@ bool too_small(int duration, const vector< vector<int> > distances, int n_agents
     std::vector<int> matemap(n_agents+n_shelters);
     boost::edmonds_maximum_cardinality_matching(T, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, T)));
 
-    int matchingsize = matching_size(T, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, T)));
+    int matchingsize = boost::matching_size(T, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, T)));
 
     //return false if not all agents matched
     return matchingsize < n_agents; 
@@ -60,29 +61,43 @@ void testcase() {
 
     //construct graph of slopes and lifts
     Graph G(n_pos);
-    WeightMap weightmap = get(edge_weight, G);
+    WeightMap weightmap = boost::get(edge_weight, G);
 
     for (int i = 0; i < m_edges; ++i)
     {
-        int w, x, y, t;
+        char w;
+        int x, y, t;
         cin >> w >> x >> y >> t;
         Edge e; bool success;   
-        tie(e, success) = add_edge(x, y, G);
+        tie(e, success) = boost::add_edge(x, y, G);
         weightmap[e] = t;
 
         if(w == 'L') { //add the reverse edge too
-            tie(e, success) = add_edge(y, x, G);
+            tie(e, success) = boost::add_edge(y, x, G);
             weightmap[e] = t; 
         }
     }
 
+    //read agent pos
+    for (int i = 0; i < n_agents; ++i)
+    {
+        cin >> pos_agents[i];
+    }
+
+    //read shelter pos
+
+    for (int i = 0; i < n_shelters; ++i)
+    {
+        cin >> pos_shelters[i];
+    }
+
     //for each agent do dijkstra to find out which shelters 
     //are reachable in what time
-    vector< vector<int> > agent_dist(n_agents, vector<int>(V));
+    vector< vector<int> > agent_dist(n_agents, vector<int>(n_pos));
     for (int i = 0; i < n_agents; ++i)
     {
         boost::dijkstra_shortest_paths(G, pos_agents[i], // We MUST provide at least one of the two maps
-        boost::distance_map(boost::make_iterator_property_map(agent_dist.begin(), boost::get(boost::vertex_index, G))));
+        boost::distance_map(boost::make_iterator_property_map(agent_dist[i].begin(), boost::get(boost::vertex_index, G))));
     }
 
     vector< vector<int> > agent_shelter_dist(n_agents, vector<int>(n_shelters));
@@ -103,6 +118,16 @@ void testcase() {
     //binary search on the distance (time) to reach shelter
     //if no pairing of agent -> shelter is possible then the time is too small
     
+    int lmin = 0, lmax = max_dist;
+    while(lmin != lmax) {
+        int p = lmin + (lmax - lmin)/2;
+        if(not too_small(p, agent_shelter_dist, n_agents, n_shelters)) //ms < n_agents
+            lmin = p+1;
+        else //ms == n_agents
+            lmax = p;
+    }
+
+    cout << lmax << endl;
 
 
 
