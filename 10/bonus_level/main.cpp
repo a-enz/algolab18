@@ -5,6 +5,8 @@
 
 using namespace std;
 
+int max_path
+
 void testcase() {
 	int n;
 	cin >> n;
@@ -18,8 +20,8 @@ void testcase() {
         }
     }
 
-	//write output values for testcase
-	
+
+    	
 }
 
 int main(void) {

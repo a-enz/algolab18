@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <climits>
+#include <assert.h>
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/prim_minimum_spanning_tree.hpp>
@@ -59,7 +60,7 @@ void testcases() {
 	        boost::tie(e, success) = boost::add_edge(i, j, G);
 	        weightmap[e] = cost[i][j];
 	        if(max_c < cost[i][j]) {
-	            max_c = costs[i][j];
+	            max_c = cost[i][j];
 	        }
 	    }
 	}
@@ -70,6 +71,16 @@ void testcases() {
 	std::vector<Vertex> primpredmap(V);	// We MUST use this vector as an Exterior Property Map: Vertex -> Prim Predecessor
 	boost::prim_minimum_spanning_tree(G, boost::make_iterator_property_map(primpredmap.begin(), boost::get(boost::vertex_index, G)),	// Prim from user-defined start,
 			boost::root_vertex(start-1)); //start is in 1-indexing!!
+
+    //mst cost
+    int totalweight = 0;
+    for (int i = 0; i < V; ++i) {
+        if (primpredmap[i] != i) {
+            Edge e; bool success;
+            boost::tie(e, success) = boost::edge(i, primpredmap[i], G);
+            totalweight += weightmap[e];
+        }
+    }
 			
     //build the complete graph again with the following changes
     // - "remove" the edge (i, primpredmap[i]) by increasing the weight a lot
@@ -94,14 +105,47 @@ void testcases() {
 	
 	
 	//iterate over all MST edges and compute alternative shortest path
+    int added_cost = max_c+1;
 	for (int i = 0; i < V; ++i) {
 		if (primpredmap[i] != i) {
 			Edge e; bool success;
 			boost::tie(e, success) = boost::edge(i, primpredmap[i], G_path);
+
+            //get the cost from the cost matrix
+            int old_cost;
+            if(i < primpredmap[i]){
+                old_cost = cost[i][primpredmap[i]];
+            } else {
+                old_cost = cost[primpredmap[i]][i];
+            }
+            //cout << "old cost " << old_cost << endl;
 			weightmap_path[e] = max_c + 1;
-			
+
+			 // Dijkstra shortest paths
+            // =======================
+            std::vector<Vertex> predmap(V); // We will use this vector as an Exterior Property Map: Vertex -> Dijkstra Predecessor
+            std::vector<int> distmap(V);        // We will use this vector as an Exterior Property Map: Vertex -> Distance to source
+            boost::dijkstra_shortest_paths(G_path, i, // We MUST provide at least one of the two maps
+            boost::predecessor_map(boost::make_iterator_property_map(predmap.begin(), boost::get(boost::vertex_index, G_path))). // predecessor map as Named Parameter
+            distance_map(boost::make_iterator_property_map(distmap.begin(), boost::get(boost::vertex_index, G_path))));
+
+            int new_cost = distmap[primpredmap[i]];
+            //cout << "new cost: " << new_cost << endl;
+            //reset the edge weight
+            weightmap_path[e] = 0;
+
+            //compute the added cost to the second best spanning tree
+            int new_added_cost = new_cost - old_cost;
+            assert(new_added_cost >= 0); //otherwhise we did not have MST previously (or we have an error)
+
+            //compute the smallest added cost
+            if(added_cost > new_added_cost) {
+                added_cost = new_added_cost;
+            }
 		}
 	}
+
+    cout << totalweight + added_cost << endl;
 		
 }
 
