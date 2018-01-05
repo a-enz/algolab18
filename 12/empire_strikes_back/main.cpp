@@ -2,7 +2,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
-#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/basic.h>
 #include <CGAL/QP_models.h>
@@ -16,7 +16,7 @@ typedef CGAL::Quotient<ET> SolT;
 typedef CGAL::Quadratic_program<ET> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 
-typedef CGAL::Exact_predicates_exact_constructions_kernel K;
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Delaunay_triangulation_2<K>  Triangulation;
 typedef Triangulation::Edge_iterator  Edge_iterator;
 typedef K::Point_2	P;
@@ -53,7 +53,7 @@ void testcase() {
 	}
 
 	vector<K::FT> max_sq_radius(s);
-	if(b != 0) {
+	if(b != 0) { //care! there can be zero bounty hunters
 		//Triangulation of bounthunters
 		Triangulation t;
 	  	t.insert(b_loc.begin(), b_loc.end());
@@ -66,7 +66,8 @@ void testcase() {
 	  		max_sq_radius[i] = CGAL::squared_distance(s_loc[i], nearest);	
 	  	}
   	} else {
-  		max_sq_radius = vector<K::FT>(s, INT_MAX);
+  		// basically allows all (integer) radii of dist(a,s)
+  		max_sq_radius = vector<K::FT>(s, INT_MAX); 
   	}
 
 
