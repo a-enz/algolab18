@@ -6,9 +6,18 @@
 #include <algorithm>
 #include <climits>
 #include <assert.h>
+#include <set>
 
 // Namespaces
 using namespace std;
+
+void add_bars(vector<int> &bar_loc, vector<int> &b) {
+    
+    for (unsigned int i = 0; i < b.size(); i += 1)
+    {
+        bar_loc.push_back(b[i]);
+    }
+}
 
 // Functions
 // ========= 
@@ -48,30 +57,51 @@ void testcases() {
     {
         int high = border_indices[i].second;
         int low = border_indices[i].first;
+        //cout << "high " << loc[high]  << " low " << loc[low] << endl;
+        int p_count = high - low + 1;
         
-        int p_count = hight - low + 1;
-        if(max_p_count <= p_count) {
-            max_p_count = p_count;
-            
-            //compute longest dist for this window
-            int longest_dist = high - low;
-            if(longest_dist % 2 == 0) {//even
-                longest_dist = longest_dist / 2;
-            }
-            else {//odd
-                longest_dist = longest_dist / 2 + 1;
-            }
-            
-            //check if minimum longest distance is better
-            if(longest_dist < )
-            
+        //compute longest dist for this window
+        //and bar locations
+        int longest_dist = loc[high] - loc[low];
+        assert(longest_dist <= 200);
+        vector<int> b;
+        if(longest_dist % 2 == 0) {//even
+            longest_dist = longest_dist / 2;
+            b.push_back(loc[low] + longest_dist);
+        }
+        else {//odd
+            longest_dist = longest_dist / 2 + 1;
+            b.push_back(loc[low] + longest_dist);
+            b.push_back(loc[high] - longest_dist);
         }
         
-        
+        //checks on optimality condition
+        if(max_p_count == p_count) {
+            if(min_longest_dist > longest_dist) { 
+                bar_loc.clear();
+                min_longest_dist = longest_dist;
+                add_bars(bar_loc, b);
+            }
+            else if(min_longest_dist == longest_dist) {
+                add_bars(bar_loc, b);
+            }
+        }
+        else if(max_p_count < p_count) {
+            bar_loc.clear();
+            min_longest_dist = longest_dist;
+            max_p_count = p_count;
+            add_bars(bar_loc, b);
+        }
     }
     
+    sort(bar_loc.begin(), bar_loc.end());
     
-    
+    cout << max_p_count << " " << min_longest_dist << endl;
+    for (unsigned int i = 0; i < bar_loc.size(); i += 1)
+    {
+        cout << bar_loc[i] << " ";
+    }
+    cout << endl;
 }
 
 // Main function looping over the testcases
