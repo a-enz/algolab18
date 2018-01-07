@@ -35,23 +35,6 @@ typedef boost::property_map<Graph, boost::edge_weight_t>::type	WeightMap;	// pro
 //  compute dist of shortest path, remember added length to new ""MST""
 // output minimum cost
 
-void dfs(int v, int max_c, 
-        vector<bool>& visited,
-        const vector< vector<int> >& MST,
-        const vector< vector<int> >& cost,
-        vector<int>& max) {
-
-    for(int u : MST[v]) {
-        if(not visited[u]) {
-            visited[u] = true;
-            int new_max = max_c;
-            if(cost[v][u] > new_max) new_max = cost[u][v];
-            max[u] = new_max;
-            dfs(u, new_max, visited, MST, cost, max);
-        }
-    }
-
-}
 
 // Functions
 // ========= 
@@ -72,7 +55,6 @@ void testcases() {
 	    for (size_t j = i+1; j < n; j += 1)
 	    {
 	        cin >> cost[i][j]; //j >= i+1, i <- {0,...,n-2}
-            cost[j][i] = cost[i][j]; //just store the symetric part of matrix, easier to read out values
 	        Edge e; bool success;
 	        boost::tie(e, success) = boost::add_edge(i, j, G);
 	        weightmap[e] = cost[i][j];
@@ -95,56 +77,94 @@ void testcases() {
             totalweight += weightmap[e];
         }
     }
+			
 
-    //for each vertice compute a list of max weight edges on the path to every
-    //other vertice. This can be done in O(n)
-
-    //store mst in an adj matrix
-    vector< vector<int> > MST(V, vector<int>());
-
-    for (size_t i = 0; i < V; ++i)
-    {
-        if(primpredmap[i] != i) {
-            MST[i].push_back(primpredmap[i]);
-            MST[primpredmap[i]].push_back(i);
-        }
-    }
-
-    //do dfs on MST for every node
-    //and store list of max edge weights on path to every other node in MST
-    vector< vector<int> > max_path_weight(V, vector<int>(V));
-    for (size_t i = 0; i < V; ++i)
-    {
-        //dfs
-        vector<bool> visited(V, false);
-        dfs(i, 0, visited, MST, cost, max_path_weight[i]);
-    }
-
-    //go over all pairs of vertices and check for the minimum difference
-    //between a direct edge and the maximal edge on the mst path
+    //iterate over all pairs of vertices (i, j) s.t i < j
+    //for each pair check the following difference: c_new - c_old and get the smallest
+    //c_new = cost[i][j]
+    //c_old = highest cost of edge on path connecting i and j in MST
     int min_added_cost = INT_MAX;
-    for (size_t i = 0; i < n-1; i += 1)
+	for (size_t i = 0; i < n-1; i += 1)
     {
         for (size_t j = i+1; j < n; j += 1)
         {
-            //skip edges in the MST
+            //check if the current edge already in the MST, skip
             if(primpredmap[i] == j || primpredmap[j] == i) continue;
 
-            int c_direct = cost[i][j];
-            int c_path = max_path_weight[i][j];
-            //cout << "path weight: " << max_path_weight[i][j] << endl;
 
-            int diff = c_direct - c_path;
-            assert(diff >= 0);
+            int c_new = cost[i][j];
+            int c_old;
 
-            if(diff < min_added_cost) {
-                min_added_cost = diff;
+            size_t ii = i, jj = j;
+
+            // compute path by combining information of paths to the root
+            vector<bool> visited(V, false);
+            int max_cj = 0;
+
+            //go to the root
+            while(primpredmap[ii] != ii) {
+                visited[ii] = true;
+                ii = primpredmap[ii];
             }
+
+            //go to root or until meeting the path i took to root
+            while(primpredmap[jj] != jj && not visited[jj]) {
+                int c;
+                if(jj > primpredmap[jj]){
+                    c = cost[primpredmap[jj]][jj];
+                }
+                else {
+                    c = cost[jj][primpredmap[jj]];
+                }
+
+                //update max
+                if(c > max_cj) {
+                    max_cj = c;
+                }
+
+                jj = primpredmap[jj];
+            }
+
+            //go to root or until meeting j path
+            ii = i;
+            int max_ci = 0;
+            while(primpredmap[ii] != ii && ii != jj) {
+                int c;
+                if(ii > primpredmap[ii]){
+                    c = cost[primpredmap[ii]][ii];
+                }
+                else {
+                    c = cost[ii][primpredmap[ii]];
+                }
+
+                //update max
+                if(c > max_ci) {
+                    max_ci = c;
+                }
+
+                ii = primpredmap[ii];
+            }
+
+            //update c_old
+            if(max_ci < max_cj) {
+                c_old = max_cj;
+            }
+            else {
+                c_old = max_ci;
+            }
+
+            //check MST condition
+            assert(c_new - c_old >= 0); //otherwise something went wrong
+
+            if(c_new - c_old < min_added_cost) {
+                min_added_cost = c_new - c_old;
+            }
+
+            //go backwards on both paths simult
         }
     }
-
+    //cout << "min_added_cost " << min_added_cost << endl;
     cout << totalweight + min_added_cost << endl;
-			
 }
 
 // Main function looping over the testcases

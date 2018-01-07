@@ -22,9 +22,6 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,     
         boost::no_property            // interior properties of vertices  
         >                   UndirGraph;
 typedef boost::graph_traits<Graph>::edge_descriptor     Edge;       // Edge Descriptor: an object that represents a single edge.
-typedef boost::graph_traits<Graph>::vertex_descriptor       Vertex;     // Vertex Descriptor: with vecS vertex list, this is really just an int in the range [0, num_vertices(G)).  
-typedef boost::graph_traits<Graph>::edge_iterator       EdgeIt;     // to iterate over all edges
-typedef boost::graph_traits<Graph>::out_edge_iterator       OutEdgeIt;  // to iterate over all outgoing edges of a vertex
 typedef boost::property_map<Graph, boost::edge_weight_t>::type  WeightMap;  // property map to access the interior property edge_weight_t
 
 
@@ -47,7 +44,7 @@ bool too_small(int duration, const vector< vector<int> >& distances, int n_agent
     boost::edmonds_maximum_cardinality_matching(T, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, T)));
 
     int matchingsize = boost::matching_size(T, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, T)));
-
+    cout << "matchingsize: " << matchingsize << " / agents: " << n_agents << endl;
     //return false if not all agents matched
     return matchingsize < n_agents; 
 }
@@ -106,7 +103,7 @@ void testcase() {
     {
         for (int j = 0; j < n_shelters; ++j)
         {
-            agent_shelter_dist[i][j] = agent_dist[i][j]; //unreachable are set to INT_MAX
+            agent_shelter_dist[i][j] = agent_dist[i][pos_shelters[j]]; //unreachable are set to INT_MAX
             int dist = agent_dist[i][j];
             if(dist != INT_MAX && dist > max_dist) {
                 max_dist = dist;

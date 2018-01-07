@@ -35,47 +35,33 @@ typedef boost::property_map<Graph, boost::edge_weight_t>::type	WeightMap;	// pro
 //  compute dist of shortest path, remember added length to new ""MST""
 // output minimum cost
 
-void dfs(int v, int max_c, 
-        vector<bool>& visited,
-        const vector< vector<int> >& MST,
-        const vector< vector<int> >& cost,
-        vector<int>& max) {
-
-    for(int u : MST[v]) {
-        if(not visited[u]) {
-            visited[u] = true;
-            int new_max = max_c;
-            if(cost[v][u] > new_max) new_max = cost[u][v];
-            max[u] = new_max;
-            dfs(u, new_max, visited, MST, cost, max);
-        }
-    }
-
-}
 
 // Functions
 // ========= 
 void testcases() {
 	//read number of planets and index of start vertice
-	size_t n, start;
+	int n, start;
 	cin >> n >> start;
 	
 	//bild graph
-	size_t V=n;
+	int V=n;
 	Graph G(V);	// creates an empty graph on n vertices
 	WeightMap weightmap = boost::get(boost::edge_weight, G);	
 	
 	//read connection costs: 0-indexing
 	vector< vector<int> > cost(n, vector<int>(n));
-	for (size_t i = 0; i < n-1; i += 1)
+	int max_c = 0;
+	for (int i = 0; i < n-1; i += 1)
 	{
-	    for (size_t j = i+1; j < n; j += 1)
+	    for (int j = i+1; j < n; j += 1)
 	    {
 	        cin >> cost[i][j]; //j >= i+1, i <- {0,...,n-2}
-            cost[j][i] = cost[i][j]; //just store the symetric part of matrix, easier to read out values
 	        Edge e; bool success;
 	        boost::tie(e, success) = boost::add_edge(i, j, G);
 	        weightmap[e] = cost[i][j];
+	        if(max_c < cost[i][j]) {
+	            max_c = cost[i][j];
+	        }
 	    }
 	}
 	
@@ -88,63 +74,79 @@ void testcases() {
 
     //mst cost
     int totalweight = 0;
-    for (size_t i = 0; i < V; ++i) {
+    for (int i = 0; i < V; ++i) {
         if (primpredmap[i] != i) {
             Edge e; bool success;
             boost::tie(e, success) = boost::edge(i, primpredmap[i], G);
             totalweight += weightmap[e];
         }
     }
-
-    //for each vertice compute a list of max weight edges on the path to every
-    //other vertice. This can be done in O(n)
-
-    //store mst in an adj matrix
-    vector< vector<int> > MST(V, vector<int>());
-
-    for (size_t i = 0; i < V; ++i)
-    {
-        if(primpredmap[i] != i) {
-            MST[i].push_back(primpredmap[i]);
-            MST[primpredmap[i]].push_back(i);
-        }
-    }
-
-    //do dfs on MST for every node
-    //and store list of max edge weights on path to every other node in MST
-    vector< vector<int> > max_path_weight(V, vector<int>(V));
-    for (size_t i = 0; i < V; ++i)
-    {
-        //dfs
-        vector<bool> visited(V, false);
-        dfs(i, 0, visited, MST, cost, max_path_weight[i]);
-    }
-
-    //go over all pairs of vertices and check for the minimum difference
-    //between a direct edge and the maximal edge on the mst path
-    int min_added_cost = INT_MAX;
-    for (size_t i = 0; i < n-1; i += 1)
-    {
-        for (size_t j = i+1; j < n; j += 1)
-        {
-            //skip edges in the MST
-            if(primpredmap[i] == j || primpredmap[j] == i) continue;
-
-            int c_direct = cost[i][j];
-            int c_path = max_path_weight[i][j];
-            //cout << "path weight: " << max_path_weight[i][j] << endl;
-
-            int diff = c_direct - c_path;
-            assert(diff >= 0);
-
-            if(diff < min_added_cost) {
-                min_added_cost = diff;
-            }
-        }
-    }
-
-    cout << totalweight + min_added_cost << endl;
 			
+    //build the complete graph again with the following changes
+    // - "remove" the edge (i, primpredmap[i]) by increasing the weight a lot
+    // - set weight of MST edges to 0
+    
+	Graph G_path(V);	// creates an empty graph on n vertices
+	WeightMap weightmap_path = boost::get(boost::edge_weight, G_path);	
+
+	for (int i = 0; i < n-1; i += 1)
+	{
+	    for (int j = i+1; j < n; j += 1)
+	    {
+	        Edge e; bool success;
+	        boost::tie(e, success) = boost::add_edge(i, j, G_path);
+	        if(primpredmap[i] == j || primpredmap[j] == i) {
+	            weightmap_path[e] = 0;
+	        } else { 
+	            weightmap_path[e] = cost[i][j];
+	        }
+	    }
+	}
+	
+	
+	//iterate over all MST edges and compute alternative shortest path
+    int added_cost = max_c+1;
+	for (int i = 0; i < V; ++i) {
+		if (primpredmap[i] != i) {
+			Edge e; bool success;
+			boost::tie(e, success) = boost::edge(i, primpredmap[i], G_path);
+
+            //get the cost from the cost matrix
+            int old_cost;
+            if(i < primpredmap[i]){
+                old_cost = cost[i][primpredmap[i]];
+            } else {
+                old_cost = cost[primpredmap[i]][i];
+            }
+            //cout << "old cost " << old_cost << endl;
+			weightmap_path[e] = max_c + 1;
+
+			 // Dijkstra shortest paths
+            // =======================
+            std::vector<Vertex> predmap(V); // We will use this vector as an Exterior Property Map: Vertex -> Dijkstra Predecessor
+            std::vector<int> distmap(V);        // We will use this vector as an Exterior Property Map: Vertex -> Distance to source
+            boost::dijkstra_shortest_paths(G_path, i, // We MUST provide at least one of the two maps
+            boost::predecessor_map(boost::make_iterator_property_map(predmap.begin(), boost::get(boost::vertex_index, G_path))). // predecessor map as Named Parameter
+            distance_map(boost::make_iterator_property_map(distmap.begin(), boost::get(boost::vertex_index, G_path))));
+
+            int new_cost = distmap[primpredmap[i]];
+            //cout << "new cost: " << new_cost << endl;
+            //reset the edge weight
+            weightmap_path[e] = 0;
+
+            //compute the added cost to the second best spanning tree
+            int new_added_cost = new_cost - old_cost;
+            assert(new_added_cost >= 0); //otherwhise we did not have MST previously (or we have an error)
+
+            //compute the smallest added cost
+            if(added_cost > new_added_cost) {
+                added_cost = new_added_cost;
+            }
+		}
+	}
+
+    cout << totalweight + added_cost << endl;
+		
 }
 
 // Main function looping over the testcases
