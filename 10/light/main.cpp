@@ -36,8 +36,6 @@ long lamp_height;
 vector<P> lamp_loc;
 // Functions
 // ========= 
-
-
 vector<bool> compute_hits(int p) {
                 
     //Triangulation of the lamps
@@ -64,6 +62,31 @@ vector<bool> compute_hits(int p) {
     }
     
     return is_hit;
+}
+
+
+int hitcount(const vector<bool>& is_hit) {
+    int hitcount = 0;
+    for (unsigned int i = 0; i < m_participants; i += 1)
+    {
+        if(is_hit[i]) {
+            hitcount++;
+        }
+    }
+    return hitcount;
+}
+
+void print_winners(const vector<bool>& is_hit) {
+    int c=0;
+    for (unsigned int i = 0; i < m_participants; i += 1)
+    {
+        if(not is_hit[i]) {
+            cout << i << " ";
+            c++;
+        }
+    }
+    if(c==0) cout << "FUUUU";
+    cout << endl;
 }
 
 
@@ -96,41 +119,36 @@ void testcases() {
         lamp_loc[i] = P(x, y);
     }
     
-    //Do binary search
-    int lmin = 0, lmax = n_lamps;
-    
-    while(lmin < lmax) {
-        int p = lmin + (lmax - lmin) / 2;
-        
-        
-        //compute amount of hit persons
-        vector<bool> is_hit = compute_hits(p);
-        
-        int hitcount = 0;
-        for (unsigned int i = 0; i < m_participants; i += 1)
-        {
-            if(is_hit[i]) {
-                hitcount++;
+    vector<bool> is_hit = compute_hits(n_lamps);
+
+    //first check if the winners are found in the last round
+    if(hitcount(is_hit) < m_participants) {
+        print_winners(is_hit);
+    }
+    else {
+
+        //Do binary search, only if necessary
+        int lmin = 0, lmax = n_lamps;
+
+        while(lmin < lmax) {
+            int p = lmin + (lmax - lmin) / 2;
+            
+            
+            //compute amount of hit persons
+            is_hit = compute_hits(p);
+            
+            if(hitcount(is_hit) < m_participants) {
+                lmin = p + 1;
+            }
+            else {
+                lmax = p;
             }
         }
         
-        if(hitcount < m_participants) {
-            lmin = p + 1;
-        }
-        else
-            lmax = p;
+        is_hit = compute_hits(lmin-1);
+        
+        print_winners(is_hit);
     }
-    //cout << "lmin " << lmin << " lmax " << lmax << endl;
-    //lmin = (lmin == 0) ? lmin : lmin - 1;
-    
-    vector<bool> is_hit = compute_hits(lmin);
-    
-    for (unsigned int i = 0; i < m_participants; i += 1)
-    {
-        if(not is_hit[i]) cout << i << " ";
-    }
-    
-    cout << endl;
 }
 
 // Main function looping over the testcases
