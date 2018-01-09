@@ -41,6 +41,8 @@ struct Booking {
 };
 
 const size_t INF_CAP = 20 * 100;
+const size_t MAX_TIME = 100000;
+const size_t MAX_P = 100;
 
 // Custom Edge Adder Class, that holds the references
 // to the graph, capacity map, weight map and reverse edge map
@@ -74,15 +76,26 @@ void testcases() {
     cin >> n_bookings >> s_stations;
     
     vector<size_t> cars(s_stations);
+    int total_cars = 0;
     for (size_t i = 0; i < s_stations; i += 1)
     {
         cin >> cars[i];
+        total_cars += cars[i];
     }
     
     vector< map<int, int> > time_indexmap(s_stations, map<int, int>());
     vector<Booking> bookings(n_bookings);
     
     size_t vertex_counter = 0;
+    //for each station, insert start and endtime
+    for (size_t i = 0; i < s_stations; i += 1)
+    {
+        time_indexmap[i][0] = vertex_counter;
+        vertex_counter++;
+        time_indexmap[i][MAX_TIME] = vertex_counter;
+        vertex_counter++;
+    }
+    
     for (size_t i = 0; i < n_bookings; i += 1)
     {   
         //store bookings
@@ -130,20 +143,25 @@ void testcases() {
                 to != indices.end();
                 to++)
             {   
+                int to_idx = to->second;
+                int from_idx = from->second;
+                
                 if(to == indices.begin()) { //edge from source to first vertice of station
-                    eaG.addEdge(source, to->second, cars[i], 0);
+                    eaG.addEdge(source, to_idx, cars[i], 0);
                 }
                 else {
-                    eaG.addEdge(from->second, to->second, INF_CAP, 0);
-                    from = to;
-                    
+                    int duration = to->first - from->first;
+                    eaG.addEdge(from_idx, to_idx, INF_CAP, duration * MAX_P);
+                                        
                     //if 'to' is last entry in the indices map, also add edge to target vertice
                     
                     MapIt next = to;
                     next++;
                     if(next == indices.end()) {
-                        eaG.addEdge(to->second, target, INF_CAP, 0);
+                        eaG.addEdge(to_idx, target, INF_CAP, 0);
                     }
+                    
+                    from = to;
                 }
             }
         }
@@ -156,18 +174,23 @@ void testcases() {
         int from = time_indexmap[b.from][b.dep];
         int to = time_indexmap[b.to][b.ar];
         
-        
+        int duration = b.ar - b.dep;
 
-        eaG.addEdge(from, to, 1, -b.profit);
+        eaG.addEdge(from, to, 1, duration * MAX_P - b.profit);
     }
     
     
     //Compute profit with cycle canceling
-    boost::push_relabel_max_flow(G, source, target);
-    boost::cycle_canceling(G);
-    int cost = boost::find_flow_cost(G);
+    boost::successive_shortest_path_nonnegative_weights(G, source, target);
+        
+    int flow = 0;
+    OutEdgeIt e, eend;
+    for(boost::tie(e, eend) = boost::out_edges(boost::vertex(source, G), G); e != eend; ++e) {
+        flow += capacitymap[*e] - rescapacitymap[*e];
+    }
+    long cost = boost::find_flow_cost(G);
     
-    cout << -cost << endl;
+    cout << (long) MAX_P * (long) MAX_TIME * (long) flow - cost << endl;
     
     
 
