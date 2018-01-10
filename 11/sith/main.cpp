@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <climits>
 #include <cassert>
+#include <set>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
@@ -22,6 +23,7 @@ typedef CGAL::Triangulation_face_base_2<K>                      Fb;
 typedef CGAL::Triangulation_data_structure_2<Vb,Fb>             Tds;
 typedef CGAL::Delaunay_triangulation_2<K, Tds>                  Triangulation;
 typedef Triangulation::Finite_edges_iterator                    Edge_iterator;
+typedef Triangulation::Edge_circulator                          Edge_circulator;
 
 typedef Triangulation::Vertex_handle                            Vertex;
 
@@ -91,23 +93,99 @@ void testcases() {
                 boost::make_iterator_property_map(componentmap.begin(), 
                 boost::get(boost::vertex_index, G)));
 
-    std::vector<int> componentsize(ncc);
+    //build data structure to query all vertices of a component easily
+    vector< set<int> > component_vertices(ncc, set<int>());
     for (int i = 0; i < n; ++i)
-        ++componentsize[componentmap[i]];
+    {
+        component_vertices[componentmap[i]].insert(i);
+    }
 
-    bool found = false;
+
+    //check the sizes of the components, maybe there is already a solution
+    int max_size = 0;
     for (int i = 0; i < ncc; ++i)
     {
-        if(componentsize[i] >= l) {
-            found = true;
-            break;
+        max_size = max(max_size, (int) component_vertices[i].size());
+    }
+
+    if(max_size >= l) {
+        cout << l << endl;
+        return;
+    }
+
+    //add planets back in to check if connected components grow larger/equal
+    //than the allowed number of days: l-1, l-2, ..., 0 (order of days and planets)
+
+    for (int day = l-1; day > 0; --day) //can't take planet 0
+    {
+        //add to the triangulation and check the neighboring planets
+        Vertex v = t.insert(pts[day]);
+        v->info() = day;
+
+        set<int> neighbor_comp;
+        Edge_circulator c = t.incident_edges(v);
+        do {
+            if (not t.is_infinite(c) && t.segment(c).squared_length() <= r_sq) {
+                //extract the component of neighboring vertice (planet)
+                Vertex v1 = c->first->vertex((c->second + 1) % 3);
+                Vertex v2 = c->first->vertex((c->second + 2) % 3);
+
+                int u = v1->info();
+                int v = v2->info();
+
+                assert(u == day || v == day);
+
+                //newly added planet has lowest index of all so far added
+                int nv = max(u, v);
+
+                //store component of encountered neighbor
+                neighbor_comp.insert(componentmap[nv]);
+            }
+        } while (++c != t.incident_edges(v)); 
+
+
+        //merge encountered components into one component and check its size
+
+        //The single vertex component of 'v' does not connect to any other components
+        //nothing to merge
+        if(neighbor_comp.empty()) continue;
+
+
+        //pick the dominant component for the merge
+        int dominant_comp = *neighbor_comp.begin();
+        set<int>* dominant_vertices = &component_vertices[dominant_comp];
+
+        //add the new vertex 'v'
+        componentmap[v->info()] = dominant_comp;
+        dominant_vertices->insert(v->info());
+
+        //add the discovered neighboring vertices
+        for(auto comp_it = neighbor_comp.begin();
+            comp_it != neighbor_comp.end();
+            comp_it++) {
+            if(dominant_comp != *comp_it) {
+                //update componentmap
+                for(int nb_planet : component_vertices[*comp_it]) {
+                    componentmap[nb_planet] = dominant_comp;
+                }
+
+                //update component_vertices
+                dominant_vertices->insert(component_vertices[*comp_it].begin(),
+                                        component_vertices[*comp_it].end());
+            }
+        }
+
+        //update maximal size 
+        max_size = max(max_size, (int) dominant_vertices->size());
+
+        if(max_size >= day) {
+            cout << day << endl;
+            return;
         }
     }
 
-    if(found)
-        cout << l << endl;
-    else
-        cout << "???\n";
+
+
     
 }
 
@@ -115,7 +193,9 @@ void testcases() {
 int main() {
 	ios_base::sync_with_stdio(false);
 	int T;	cin >> T;	// First input line: Number of testcases.
-	while(T--)	testcases();
+	while(T--)	{
+        testcases();
+    }
 	return 0;
 }
 
