@@ -25,7 +25,7 @@ typedef boost::graph_traits<Graph>::edge_descriptor     Edge;       // Edge Desc
 typedef boost::property_map<Graph, boost::edge_weight_t>::type  WeightMap;  // property map to access the interior property edge_weight_t
 
 
-bool too_small(int duration, const vector< vector<int> >& distances, int n_agents, int n_shelters) {
+bool too_small(int duration, const vector< vector<int> >& distances, int n_agents, int n_shelters, int d) {
     //construct the graph
     UndirGraph T(n_agents + n_shelters);
     for (int i = 0; i < n_agents; ++i)
@@ -33,7 +33,7 @@ bool too_small(int duration, const vector< vector<int> >& distances, int n_agent
         for (int j = 0; j < n_shelters; ++j)
         {
             int dist = distances[i][j];
-            if(dist <= duration) {
+            if(dist <= duration - d) {
                 boost::add_edge(i, j+n_agents, T);
             }
         }
@@ -44,7 +44,7 @@ bool too_small(int duration, const vector< vector<int> >& distances, int n_agent
     boost::edmonds_maximum_cardinality_matching(T, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, T)));
 
     int matchingsize = boost::matching_size(T, boost::make_iterator_property_map(matemap.begin(), get(boost::vertex_index, T)));
-    cout << "matchingsize: " << matchingsize << " / agents: " << n_agents << endl;
+    //cout << "matchingsize: " << matchingsize << " / agents: " << n_agents << endl;
     //return false if not all agents matched
     return matchingsize < n_agents; 
 }
@@ -94,7 +94,7 @@ void testcase() {
     for (int i = 0; i < n_agents; ++i)
     {
         boost::dijkstra_shortest_paths(G, pos_agents[i], // We MUST provide at least one of the two maps
-        boost::distance_map(boost::make_iterator_property_map(agent_dist[i].begin(), boost::get(boost::vertex_index, G))));
+            boost::distance_map(boost::make_iterator_property_map(agent_dist[i].begin(), boost::get(boost::vertex_index, G))));
     }
 
     vector< vector<int> > agent_shelter_dist(n_agents, vector<int>(n_shelters));
@@ -104,7 +104,7 @@ void testcase() {
         for (int j = 0; j < n_shelters; ++j)
         {
             agent_shelter_dist[i][j] = agent_dist[i][pos_shelters[j]]; //unreachable are set to INT_MAX
-            int dist = agent_dist[i][j];
+            int dist = agent_shelter_dist[i][j];
             if(dist != INT_MAX && dist > max_dist) {
                 max_dist = dist;
             }
@@ -115,10 +115,11 @@ void testcase() {
     //binary search on the distance (time) to reach shelter
     //if no pairing of agent -> shelter is possible then the time is too small
     
-    int lmin = 0, lmax = max_dist;
+    int lmin = 0, lmax = max_dist+d;
+    //cout << "max dist " << max_dist << endl;
     while(lmin != lmax) {
         int p = lmin + (lmax - lmin)/2;
-        if(not too_small(p, agent_shelter_dist, n_agents, n_shelters)) //ms < n_agents
+        if(too_small(p, agent_shelter_dist, n_agents, n_shelters, d)) //ms < n_agents
             lmin = p+1;
         else //ms == n_agents
             lmax = p;
