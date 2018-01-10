@@ -148,7 +148,13 @@ void testcases() {
 
         //The single vertex component of 'v' does not connect to any other components
         //nothing to merge
-        if(neighbor_comp.empty()) continue;
+        if(neighbor_comp.empty()) {
+            if(max_size >= day) {
+                cout << day << endl;
+                return;
+            }
+            continue;
+        }
 
 
         //pick the dominant component for the merge
@@ -156,8 +162,8 @@ void testcases() {
         set<int>* dominant_vertices = &component_vertices[dominant_comp];
 
         //add the new vertex 'v'
-        componentmap[v->info()] = dominant_comp;
-        dominant_vertices->insert(v->info());
+        componentmap[day] = dominant_comp;
+        dominant_vertices->insert(day);
 
         //add the discovered neighboring vertices
         for(auto comp_it = neighbor_comp.begin();
@@ -172,6 +178,9 @@ void testcases() {
                 //update component_vertices
                 dominant_vertices->insert(component_vertices[*comp_it].begin(),
                                         component_vertices[*comp_it].end());
+                //clear the old set, not really necessary for correctness
+                //but keeps data structure smaller
+                component_vertices[*comp_it].clear();
             }
         }
 
