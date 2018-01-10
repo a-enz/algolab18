@@ -38,9 +38,8 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS>  Gra
 //// Functions
 // ========= 
 void testcases() {
-    int n, r; 
+    int n; long r; 
     cin >> n >> r;
-    long r_sq = r * r;
     
     vector<P> pts(n);
     for (int i = 0; i < n; i += 1)
@@ -71,7 +70,7 @@ void testcases() {
 
         //check if our spaceship can travel the distance
         //and add the edge to the boost graph if true
-        if(t.segment(eit).squared_length() <= r_sq) {
+        if(t.segment(eit).squared_length() <= r * r) {
             Vertex v1 = eit->first->vertex((eit->second + 1) % 3);
             Vertex v2 = eit->first->vertex((eit->second + 2) % 3);
 
@@ -85,6 +84,7 @@ void testcases() {
             add_edge(v1->info(), v2->info(), G);
         }
     }
+
 
 
     //on the boost graph compute connected components
@@ -106,7 +106,8 @@ void testcases() {
     for (int i = 0; i < ncc; ++i)
     {
         max_size = max(max_size, (int) component_vertices[i].size());
-    }
+    } 
+
 
     if(max_size >= l) {
         cout << l << endl;
@@ -125,7 +126,7 @@ void testcases() {
         set<int> neighbor_comp;
         Edge_circulator c = t.incident_edges(v);
         do {
-            if (not t.is_infinite(c) && t.segment(c).squared_length() <= r_sq) {
+            if (not t.is_infinite(c) && t.segment(c).squared_length() <= r * r) {
                 //extract the component of neighboring vertice (planet)
                 Vertex v1 = c->first->vertex((c->second + 1) % 3);
                 Vertex v2 = c->first->vertex((c->second + 2) % 3);
