@@ -59,27 +59,68 @@ public:
 void testcases() {
     int n, m;
     cin >> n >> m;
-    
-	Graph G(n);
-	int source = 0;
-	int target = n-1;
-	EdgeCapacityMap capacitymap = boost::get(boost::edge_capacity, G);
-	ReverseEdgeMap revedgemap = boost::get(boost::edge_reverse, G);
-	ResidualCapacityMap rescapacitymap = boost::get(boost::edge_residual_capacity, G);
-	EdgeAdder eaG(G, capacitymap, revedgemap);
 
-	
-	for (unsigned int i = 0; i < m; i += 1)
+    Graph G(n);
+    EdgeCapacityMap capacitymap = boost::get(boost::edge_capacity, G);
+    ReverseEdgeMap revedgemap = boost::get(boost::edge_reverse, G);
+	ResidualCapacityMap rescapacitymap = boost::get(boost::edge_residual_capacity, G);
+    EdgeAdder eaG(G, capacitymap, revedgemap);
+
+
+    for (unsigned int i = 0; i < m; i += 1)
 	{
-	    int from, to, cost;
+	    int from, to , cost;
 	    cin >> from >> to >> cost;
-	    
 	    eaG.addEdge(from, to, cost);
 	}
-    
-	int flow = boost::push_relabel_max_flow(G, source, target);
+	
+	int min_flow = INT_MAX;
+	int sol_target, sol_source;
+	
+	for (unsigned int i = 0; i < n; i += 1)
+	{
+	    int source = i % n;
+	    int target = (i + 1) % n ;
+        
+	    int flow = boost::push_relabel_max_flow(G, source, target);
+        if(flow < min_flow) {
+            min_flow = flow;
+            sol_source = source;
+            sol_target = target;
+        }
+	}
+	
+	//compute the set belonging to the source side of the cut
+    //to get rescapacitymap into correct state, compute flow again
+	boost::push_relabel_max_flow(G, sol_source, sol_target); 
+	
+	// BFS to find vertex set S
+	std::vector<int> vis(n, false); // visited flags
+	std::queue<int> Q; // BFS queue (from std:: not boost::)
+	vis[sol_source] = true; // Mark the source as visited
+	Q.push(sol_source);
+	while (!Q.empty()) {
+		const int u = Q.front();
+		Q.pop();
+		OutEdgeIt ebeg, eend;
+		for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ++ebeg) {
+			const int v = boost::target(*ebeg, G);
+			// Only follow edges with spare capacity
+			if (rescapacitymap[*ebeg] == 0 || vis[v]) continue;
+			vis[v] = true;
+			Q.push(v);
+		}
+	}
 
-    cout << flow << endl;
+    //output mincut
+    cout << min_flow << endl;
+    
+	// Output S
+	cout << count(vis.begin(), vis.end(), true) << " ";
+	for (int i = 0; i < n; ++i) {
+		if (vis[i]) std::cout << i << " ";
+	}
+	cout << endl;
 
 }
 
