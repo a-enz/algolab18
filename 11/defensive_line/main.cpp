@@ -126,25 +126,14 @@ void testcases() {
     for (unsigned int i = 1; i < intervals.size(); i += 1)
     {
         //move until left border of next interval is after right border of current
-        pair<int, int> next = intervals[i];
-        bool stop = false;
-        while(current.second >= next.first) {
-            i++;
-            if(i < intervals.size()) {
-                next = intervals[i];
-            }
-            else {
-                stop = true;
-                break;
-            }
-        }
-        
-        if(not stop) {
-            counter++;
-            current = next;
-        }
-        else 
+        auto next_it = upper_bound(intervals_start.begin(), intervals_start.end(), current.second);
+        if(next_it == intervals_start.end()) {
             break;
+        }
+
+        i = distance(intervals_start.begin(), next_it);
+        current = intervals[i];
+        counter++;
     }
     
     if(counter < m) {
