@@ -1,11 +1,9 @@
-
 // STL includes
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <climits>
 #include <cassert>
-#include "prettyprint.hpp"
 
 // Namespaces
 using namespace std;
