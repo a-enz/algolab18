@@ -82,77 +82,40 @@ void testcase() {
 	}
 
 	// create a graph to find out which photos are reachable
-	int V = m_streets + 2;
+	int V = 2 * n_intersec + 2;
 	Vertex source = V-2;
 	Vertex target = V-1;
-	Graph G_1(V);
-	EdgeCapacityMap capacitymap = boost::get(boost::edge_capacity, G_1);
-	ReverseEdgeMap revedgemap = boost::get(boost::edge_reverse, G_1);
-	ResidualCapacityMap rescapacitymap = boost::get(boost::edge_residual_capacity, G_1);
-	EdgeAdder eaG_1(G_1, capacitymap, revedgemap);
+	Graph G(V);
+	EdgeCapacityMap capacitymap = boost::get(boost::edge_capacity, G);
+	ReverseEdgeMap revedgemap = boost::get(boost::edge_reverse, G);
+	ResidualCapacityMap rescapacitymap = boost::get(boost::edge_residual_capacity, G);
+	EdgeAdder eaG(G, capacitymap, revedgemap);
 
 	// inflow to stations
+    // outflow from stations
 	for (int i = 0; i < k_stations; ++i)
 	{
-		eaG_1.addEdge(source, station[i], 1);
+		eaG.addEdge(source, station[i], 1);
+        eaG.addEdge(n_intersec + station[i], target, 1);
 	}
 
 	// streets
 	for (int i = 0; i < m_streets; ++i)
 	{
-		eaG_1.addEdge(street_from[i], street_to[i], k_stations);
+		eaG.addEdge(street_from[i], street_to[i], k_stations);
+        eaG.addEdge(street_from[i] + n_intersec, street_to[i] + n_intersec, 1);
 	}
 
-	// outflow
+	// redirect photo locations to copy graph
 	for (int i = 0; i < l_photos; ++i)
 	{
-		eaG_1.addEdge(photo[i], target, 1);
+		eaG.addEdge(photo[i], n_intersec + photo[i], 1);
 	}
 
 	//compute flow and check which photos are reached
-	int flow_1 = boost::push_relabel_max_flow(G_1, source, target);
+	int flow = boost::push_relabel_max_flow(G, source, target);
 
-	vector<int> reached_photo;
-	OutEdgeIt e, eend;
-    for(boost::tie(e, eend) = boost::out_edges(boost::vertex(target,G_1), G_1); e != eend; ++e) {
-    	int edge_flow = rescapacitymap[*e] - capacitymap[*e];
-    	if(edge_flow != 0) {
-	    	int p = boost::target(*e, G_1);
-	    	reached_photo.push_back(p);
-
-	    	//cout << "reached " << p << endl;
-    	}
-    }
-
-    // do the same flow problem in reverse starting from the reached photo vertices
-	Graph G_2(V);
-	capacitymap = boost::get(boost::edge_capacity, G_2);
-	revedgemap = boost::get(boost::edge_reverse, G_2);
-	rescapacitymap = boost::get(boost::edge_residual_capacity, G_2);
-	EdgeAdder eaG_2(G_2, capacitymap, revedgemap);
-
-	// inflow to reached photos
-	for (int i = 0; i < reached_photo.size(); ++i)
-	{
-		eaG_2.addEdge(source, reached_photo[i], 1);
-	}
-
-	// streets
-	for (int i = 0; i < m_streets; ++i)
-	{
-		eaG_2.addEdge(street_from[i], street_to[i], 1);
-	}
-
-	// outflow
-	for (int i = 0; i < k_stations; ++i)
-	{
-		eaG_2.addEdge(station[i], target, 1);
-	}
-
-	//compute flow and check which photos are reached
-	int flow_2 = boost::push_relabel_max_flow(G_2, source, target);
-
-	cout << flow_2 << endl;
+	cout << flow << endl;
 }
 
 int main(void) {
