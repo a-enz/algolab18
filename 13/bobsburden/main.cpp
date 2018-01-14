@@ -12,8 +12,9 @@
 #include <vector>
 #include <algorithm>
 #include <climits>
-#include "prettyprint.hpp"
+//#include "prettyprint.hpp"
 #include <cassert>
+#include <unordered_map>
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
@@ -48,10 +49,9 @@ int vertex_index_out(int i, int j) {
 //    int i = 0;
 //    
 //    while((i+1)*i / 2 < v) {
-//        i++
+//        i++;
 //    }
-//    
-//    i--;
+
 //    return make_pair(i, v-i);
 //}
 
@@ -84,6 +84,7 @@ void testcases() {
     Graph G(V);	// creates an empty graph on n vertices
 	WeightMap weightmap = boost::get(boost::edge_weight, G);
 	
+	unordered_map<int, pair<int, int> > ball_indices;
     //go over all balls and connect them to neighbors
     for (int i = 0; i < k_layers; i += 1)
     {
@@ -92,6 +93,9 @@ void testcases() {
             //cout << "connecting " << "(i=" << i << ", j=" << j << "):\n";
 		    int out_vertex = vertex_index_out(i,j);
 		    int in_vertex = vertex_index_in(i,j);
+		    ball_indices.insert(make_pair(in_vertex, make_pair(i, j)));
+		    assert(out_vertex < V);
+            assert(in_vertex < V);
             //insert connections to neighbors
             for (int u = i-1; u <= i+1; u += 1)
             {
@@ -104,9 +108,9 @@ void testcases() {
                         
 		                Edge e;
 		                int target = vertex_index_in(u, v);
+		                assert(target < V);
                         boost::tie(e, std::ignore) = boost::add_edge(out_vertex, target, G);
                         weightmap[e] = 0;
-                        //cout << "    to: " << u << ", " << v << endl;
                     }
                 }
             }
@@ -131,13 +135,21 @@ void testcases() {
 		boost::distance_map(boost::make_iterator_property_map(distmap[2].begin(), boost::get(boost::vertex_index, G))));
 		
 		
-	//now iterate over vertices and compute sum of minimum distances
+	//now iterate over all in vertices and compute sum of minimum distances plus current ball weight
 	int min_burden = INT_MAX;
-	for (unsigned int i = 1; i < V; i += 2)
+	int sol_v;
+	for (int i = 0; i < V; i += 2)
 	{
-	    min_burden = min(min_burden, distmap[0][i] + distmap[1][i] + distmap[2][i]);
+	    pair<int, int> ball = ball_indices[i];
+	    int ball_value = B[ball.first][ball.second];
+	    int sum = distmap[0][i] + distmap[1][i] + distmap[2][i] + ball_value;
+	    if(sum < min_burden) {
+	        min_burden = sum;
+	        sol_v = i;
+	    }
+	    
 	}
-	
+
 	cout << min_burden << endl;
 }
 
