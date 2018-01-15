@@ -14,6 +14,8 @@
 #include <climits>
 #include <cassert>
 #include <cmath>
+#include <boost/functional/hash.hpp>
+#include <unordered_map>
 
 // Namespaces
 using namespace std;
@@ -40,13 +42,14 @@ void testcases() {
         }
     }
     
-    
-    int min_flipped = N+1;
-    for (unsigned int i = 0; i < pow(2, N); i += 1)
+    unordered_map< vector<int>, int, boost::hash< vector<int> > > list;
+    int N_half = N/2;
+    int N_rest = N - N/2;
+    for (unsigned int i = 0; i < pow(2, N_half); i += 1)
     {
         vector<int> on(M, 0);
         int flipped = 0;
-        for (unsigned int s = 0; s < N; s += 1)
+        for (unsigned int s = 0; s < N_half; s += 1)
         {
             vector<int>* lights;
             int should_flip = (i>>s) & 1;
@@ -65,9 +68,50 @@ void testcases() {
             }
         }
         
-        if(on == room && flipped < min_flipped) 
+        auto entry = list.find(on);
+        if(entry == list.end()) {
+            list[on] = flipped;
+        } 
+        else {
+            list[on] = min(flipped, entry->second);
+        }
+    }
+    
+    int min_flipped = N+1;
+    for (unsigned int i = 0; i < pow(2, N_rest); i += 1)
+    {
+        vector<int> on(M, 0);
+        int flipped = 0;
+        for (unsigned int s = 0; s < N_rest; s += 1)
         {
-            min_flipped = flipped;
+            vector<int>* lights;
+            int should_flip = (i>>s) & 1;
+            assert(should_flip == 1 || should_flip == 0);
+            if(should_flip) {
+                flipped++;
+                lights = &sr_off[s+N_half];
+            } else {
+                lights = &sr_on[s+N_half];
+            }
+            
+            //add the vector to overall lights
+            for (unsigned int r = 0; r < M; r += 1)
+            {
+                on[r] += lights->at(r);
+            }
+        }
+        
+        
+        //check if the negated vector exists in the list
+        vector<int> neg(M);
+        for (unsigned int r = 0; r < M; r += 1)
+        {
+            neg[r] = room[r] - on[r];
+        }
+        
+        auto entry = list.find(neg);
+        if(entry != list.end()) {
+            min_flipped = min(min_flipped, flipped + entry->second);
         }
     }
     
