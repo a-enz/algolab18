@@ -15,6 +15,10 @@
 #include <cassert>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
+#include <CGAL/basic.h>
+#include <CGAL/QP_models.h>
+#include <CGAL/QP_functions.h>
+#include <CGAL/Gmpq.h>
 
 // Namespaces
 using namespace std;
@@ -22,6 +26,12 @@ using namespace std;
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Delaunay_triangulation_2<K>  Triangulation;
 typedef K::Point_2      P; 
+
+// choose exact rational type
+typedef CGAL::Gmpq ET;
+// program and solution types
+typedef CGAL::Quadratic_program<ET> Program;
+typedef CGAL::Quadratic_program_solution<ET> Solution;
 
 
 // Functions
@@ -33,7 +43,7 @@ void testcases() {
     vector<P> sensor_loc(n_sensors);
     vector<int> sensor_de(n_sensors);
     vector<P> mpe_loc(m_mpe);
-    vector<K::FT> mpe_maxrad(m_mpe);
+    vector<K::FT> mpe_maxrad(m_mpe, K::FT(LONG_MAX));
     vector<P> hench_loc(h_men);
     
     for (unsigned int i = 0; i < n_sensors; i += 1)
@@ -71,6 +81,25 @@ void testcases() {
         mpe_maxrad[i] = d;
     }   
 
+
+    //do binary search on number of triggered shots
+    int lmin = 0, lmax = m_mpe;
+    while(lmin != lmax) {
+        int mid = lmin + (lmax - lmin) / 2;
+
+        //set up LP
+        Program lp (CGAL::LARGER, true, 0, false, 0);
+
+        for (int i = 0; i < mid; ++i)
+        {
+            
+        } 
+
+        if()
+            lmin = p+1
+        else 
+            lmax = p;
+    }
 }
 
 // Main function looping over the testcases
