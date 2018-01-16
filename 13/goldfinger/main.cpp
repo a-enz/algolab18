@@ -30,7 +30,7 @@ typedef K::Point_2      P;
 // choose exact rational type
 typedef CGAL::Gmpq ET;
 // program and solution types
-typedef CGAL::Quadratic_program<ET> Program;
+typedef CGAL::Quadratic_program<double> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 
 
@@ -51,12 +51,12 @@ bool is_impossible(int mid) {
         for (int k = 0; k < mid; ++k)
          {
             K::FT dd = CGAL::squared_distance(sensor_loc[s], mpe_loc[k]);
-            ET val;
+            double val;
             if(dd < mpe_maxrad[k]) {
-                val = ET(1) / ET(dd);
+                val = 1 / dd;
             }
             else {
-                val = ET(0);
+                val = 0;
             }
 
             lp.set_a(k, s, val);
