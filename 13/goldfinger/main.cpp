@@ -34,16 +34,63 @@ typedef CGAL::Quadratic_program<ET> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 
 
+//global variables
+int n_sensors, I_max;
+vector<P> sensor_loc, mpe_loc;
+vector<K::FT> mpe_maxrad;
+vector<int> sensor_de;
+
+bool is_impossible(int mid) {
+    //set up LP
+    Program lp (CGAL::LARGER, true, 0, false, 0);
+
+    //set up conditions
+    for (int s = 0; s < n_sensors; ++s)
+    {
+        //sensor must receive a certain energy from mpes
+        for (int k = 0; k < mid; ++k)
+         {
+            K::FT dd = CGAL::squared_distance(sensor_loc[s], mpe_loc[k]);
+            ET val;
+            if(dd < mpe_maxrad[k]) {
+                val = ET(1) / ET(dd);
+            }
+            else {
+                val = ET(0);
+            }
+
+            lp.set_a(k, s, val);
+         }
+
+        lp.set_b(s, sensor_de[s]);
+    }
+
+    // total amount of energy spent cannot be larger than I_max
+    for (int k = 0; k < mid; ++k)
+    {
+        lp.set_a(k, n_sensors, -1);
+    }
+
+    lp.set_b(n_sensors, -I_max);
+
+    //solve lp
+    assert(lp.is_nonnegative());
+    Solution s = CGAL::solve_nonnegative_linear_program(lp, ET());
+    assert(s.solves_linear_program(lp));
+
+    return s.status() == CGAL::QP_INFEASIBLE;
+}
+
 // Functions
 // ========= 
-void testcases() {
-    int n_sensors, m_mpe, h_men, I_max;
+void testcases() { 
+    int m_mpe, h_men;
     cin >> n_sensors >> m_mpe >> h_men >> I_max;
     
-    vector<P> sensor_loc(n_sensors);
-    vector<int> sensor_de(n_sensors);
-    vector<P> mpe_loc(m_mpe);
-    vector<K::FT> mpe_maxrad(m_mpe, K::FT(LONG_MAX));
+    sensor_loc = vector<P>(n_sensors);
+    sensor_de = vector<int>(n_sensors);
+    mpe_loc = vector<P>(m_mpe);
+    mpe_maxrad = vector<K::FT>(m_mpe, K::FT(LONG_MAX));
     vector<P> hench_loc(h_men);
     
     for (unsigned int i = 0; i < n_sensors; i += 1)
@@ -73,33 +120,34 @@ void testcases() {
     // Henchmen triangulation and maximum radii computation
     Triangulation t;
     t.insert(hench_loc.begin(), hench_loc.end());
-    
-    for (unsigned int i = 0; i < m_mpe; i += 1)
-    {
-        P nearest = t.nearest_vertex(mpe_loc[i])->point();
-        K::FT d = CGAL::squared_distance(nearest, mpe_loc[i]);
-        mpe_maxrad[i] = d;
-    }   
+        
+    if(h_men != 0) {
+        for (unsigned int i = 0; i < m_mpe; i += 1)
+        {
+            P nearest = t.nearest_vertex(mpe_loc[i])->point();
+            K::FT d = CGAL::squared_distance(nearest, mpe_loc[i]);
+            mpe_maxrad[i] = d;
+        }  
+    } 
 
+    //check if it is possible with all mpes
+    if(is_impossible(m_mpe)) {
+        cout << "impossible\n";
+        return;
+    }
 
     //do binary search on number of triggered shots
     int lmin = 0, lmax = m_mpe;
     while(lmin != lmax) {
         int mid = lmin + (lmax - lmin) / 2;
 
-        //set up LP
-        Program lp (CGAL::LARGER, true, 0, false, 0);
-
-        for (int i = 0; i < mid; ++i)
-        {
-            
-        } 
-
-        if()
-            lmin = p+1
+        if(is_impossible(mid))
+            lmin = mid+1;
         else 
-            lmax = p;
+            lmax = mid;
     }
+
+    cout << lmin << endl;
 }
 
 // Main function looping over the testcases
