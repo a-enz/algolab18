@@ -2,80 +2,51 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <cassert>
+#include <set>
 
 using namespace std;
 
-struct worker_category {
-	int max_weight;
-	int total_workers;
-	int remaining_boxes;
-}
-
-bool wc_compare(const worker_category& a, const worker_category& b) {
-	return a.remaining_boxes < b.remaining_boxes;
-}
 
 void testcase() {
 	int n_friends, m_boxes;
 	cin >> n_friends >> m_boxes;
 
-	vector<int> strengths(n_friends), weights(m_boxes);
-	for(int i=0; i<n_friends; i++) {
-		cin >> strengths[i];
+	vector<int> strength(n_friends);
+	for (int i = 0; i < n_friends; ++i)
+	{
+		cin >> strength[i];
 	}
 
-	for(int i=0; i<m_boxes; i++) {
-		cin >> weights[i];
+	multiset<int, std::greater<int> > weights;
+	for (int i = 0; i < m_boxes; ++i)
+	{	
+		int w;
+		cin >> w;
+		weights.insert(w);
 	}
 
-	sort(strengths.begin(), strengths.end(), std::greater<int>());
-	sort(weights.begin(), weights.end(), std::greater<int>());
+	sort(strength.begin(), strength.end(), std::greater<int>());
+	if(*weights.begin() > strength[0]) {
+		//found a weight heavier than maximal strength
+		cout << "impossible\n";
+		return;
+	}
 
-	//for each strenght interval k keep track of amount of boxes and 
-	//number of friends that can be classified into that interval
-	vector<worker_category> worker_pools;
-
-	
-	int prev_s = strengths[0];
-	int category = 0;
-	worker_pools.push_back(1);
-
-	int w = 0;
-	for(int i=1; i<n_friends; i++) {
-		if(prev_s != strengths[i]){ //because we sorted
-			worker_pools.push_back(1);
-			prev_s = strengths[i];
-			category++;
-
-			//add all boxes between new and previous category
-			int count=0;
-			while(weights[w] > prev_s) {//works because we sorted
-				w++;
-				count++;
-			}
-			box_piles.push_back(count);
+	int rounds = 0;
+	while(weights.size() != 0) {
+		int i=0;
+		auto box = weights.lower_bound(strength[i]);
+		while(i < n_friends && box != weights.end()) {
+			weights.erase(box);
+			i++;
+			box = weights.lower_bound(strength[i]);
 		}
-		else {
-			worker_pools[category]++;
-		}
+		rounds++;
 	}
 
- 	//add last few boxes we did not process in the loop
-	box_piles.push_back(weights.size() - w);
-
-
-
-	//now do the processing
-	int total_time=0;
-
-	while(true) {
-
-		//find shortest interval
-
-	}
-
-	cout << "test";
-
+	int time = rounds * 3 - 1;
+	cout << time << endl;
 	//write output values for testcase
 }
 
