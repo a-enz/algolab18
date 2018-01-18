@@ -14,13 +14,14 @@ typedef CGAL::Exact_predicates_exact_constructions_kernel K;
 
 
 struct Biker {
-    long long y0, x1, y1;
+    long y0;
+    K::FT slope;
     int idx;
 };
 
-K::FT slope(const Biker& b) {
-    K::FT diff = b.y1 - b.y0;
-    K::FT x = b.x1;
+K::FT slope(K::FT y0, K::FT y1, K::FT x1) {
+    K::FT diff = y1 - y0;
+    K::FT x = x1;
     return diff / x;
 }
 
@@ -35,7 +36,7 @@ void testcases() {
     {   
         long y0, x1, y1;
         cin >> y0 >> x1 >> y1;
-        bikers[i] = {y0, x1, y1, i};    
+        bikers[i] = {y0, slope(y0, y1, x1), i};    
     }
     
     
@@ -46,23 +47,24 @@ void testcases() {
     
     //go through the sorted array and compare neighbors
     set<int> winner;
-    Biker prev = *bikers.begin();
+    Biker prev = bikers[0];
     winner.insert(prev.idx);
-    K::FT max_allowed_slope = slope(prev);
+    K::FT max_allowed_slope = prev.slope;
     for (unsigned int i = 1; i < n_bikers; i += 1)
     {
-        Biker curr = *next(bikers.begin(), i);
-        K::FT curr_slope = slope(curr);
+        Biker curr = bikers[i];
+        K::FT curr_slope = curr.slope;
         if(curr_slope <= max_allowed_slope) {
             winner.insert(curr.idx);
+            max_allowed_slope = curr_slope;
         }
-        max_allowed_slope = min(max_allowed_slope, curr_slope);
+        //max_allowed_slope = min(max_allowed_slope, curr_slope);
         prev = curr;
     }
     
-    for (unsigned int i = 0; i < winner.size(); i += 1)
+    for (int w : winner)
     {
-        cout << *next(winner.begin(), i) << " ";
+        cout << w << " ";
     }
     
     cout << endl;
