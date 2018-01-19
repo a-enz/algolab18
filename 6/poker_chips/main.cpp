@@ -7,74 +7,44 @@
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
 #include "prettyprint.hpp"
-#include <set>
 
 using namespace std;
 
 unordered_map< vector<int>, int, boost::hash< vector<int> > > memo;
 
-set<int> color_candidates;
-
-bool subset_valid(const vector< vector<int> >& stack,
-                    const vector<int>& top_coin, 
-                    const int bitset,
-                    vector<int>& take) {
-
-    int first_color = -1;
-    for (int i = 0; i < stack.size(); ++i)
-    {
-        if((bitset >> i) & 1) {
-            first_color = stack[i].at(top_coin[i]);
-            break;
-        }
-    }
-
-    assert(first_color > 0);
-    assert(first_color <= pow(2, 10));
-
-    for (int i = 0; i < stack.size(); ++i)
-    {
-        if((bitset >> i) & 1) {
-            if(first_color != stack[i].at(top_coin[i])) {
-                return false;
-            }
-            else {
-                take.push_back(i);
-            }
-        }
-        assert(top_coin[i] >= 0);
-    }
-
-    return true;
-}
-
-
 int maximize_score(const vector< vector<int> >& stack,
 					vector<int>& top_coin) {
-    assert(top_coin.size() == stack.size());
+
     //check memo
-    vector<int> fvalues = top_coin;
-    auto result = memo.find(fvalues);
+    auto result = memo.find(top_coin);
     if(result != memo.end())
         return result->second;
-
-    //check if there is a invalid top_coin position
-    for (int i = 0; i < top_coin.size(); ++i)
-    {
-        if(top_coin[i] < 0) {
-
-            assert(memo.find(fvalues) == memo.end());
-            memo[fvalues] = 0;
-            return memo[fvalues];
-        }
-    }
 
     //go over all possible subset, check if it is valid color subset
     int max_score = 0;
     for (int bitset = 1; bitset < pow(2, stack.size()); ++bitset)
     {   
+        bool valid_set = true;
+        int set_color = -1;
+
         vector<int> take;
-        if(subset_valid(stack, top_coin, bitset, take)) {
+        for (int i = 0; i < stack.size(); ++i)
+        {
+            if((bitset >> i) & 1) {
+                if(top_coin[i] < 0 || 
+                    (set_color != -1 && stack[i][top_coin[i]] != set_color)) {
+                    valid_set = false;
+                    break;
+                }
+                else {
+                    set_color = stack[i][top_coin[i]];
+                    take.push_back(i);
+                }
+            }
+        }
+
+
+        if(valid_set) {
             //open recursion
             assert(take.size() > 0);
             int color = stack.at(take[0]).at(top_coin.at(take[0]));
@@ -83,9 +53,6 @@ int maximize_score(const vector< vector<int> >& stack,
                 assert(color == stack.at(k).at(top_coin.at(k)));
                 top_coin[k]--;
             }
-
-            if(take.size() >= 2)
-                color_candidates.insert(color);
 
             int score = (take.size() == 1) ? 0 : pow(2, take.size()-2);
             int val = maximize_score(stack, top_coin);
@@ -99,11 +66,8 @@ int maximize_score(const vector< vector<int> >& stack,
         }
     }
 
-    assert(memo.find(fvalues) == memo.end());
-
-    memo[fvalues] = max_score;
-    assert(memo[fvalues] >= 0);
-    return memo[fvalues];
+    memo[top_coin] = max_score;
+    return memo[top_coin];
 
 }
 
@@ -129,7 +93,6 @@ void testcase() {
 
 	//set up memo 
 	memo.clear();
-    color_candidates.clear();
 
 	//read values of chips
 	for(int s=0; s<n_stacks; s++) {
@@ -141,11 +104,7 @@ void testcase() {
 		}
 	}
 
-    int res = maximize_score(stack, top_coin);
-    //cout << color_candidates << endl;
-
-	cout << res << endl;
-
+	cout << maximize_score(stack, top_coin) << endl;
 }
 
 int main(void) {
