@@ -3,100 +3,108 @@
 #include <assert.h>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include <unordered_map>
 #include <boost/functional/hash.hpp>
+#include "prettyprint.hpp"
+#include <set>
 
 using namespace std;
 
-struct v_hash {
-	size_t operator()(const vector<int> &v) const {
-		return boost::hash_value(v);
-	}
-};
+unordered_map< vector<int>, int, boost::hash< vector<int> > > memo;
 
+set<int> color_candidates;
 
-unordered_map< vector<int>, int, v_hash> memo;
+bool subset_valid(const vector< vector<int> >& stack,
+                    const vector<int>& top_coin, 
+                    const int bitset,
+                    vector<int>& take) {
 
+    int first_color = -1;
+    for (int i = 0; i < stack.size(); ++i)
+    {
+        if((bitset >> i) & 1) {
+            first_color = stack[i].at(top_coin[i]);
+            break;
+        }
+    }
 
-//compute the subsets we want to check
-//(subsets of the same color)
-unordered_map<int, int> find_color_subsets(
-				const vector< vector<int> >& stack,
-				vector<int> top_coin) {
+    assert(first_color > 0);
+    assert(first_color <= pow(2, 10));
 
-	unordered_map<int, int> result;
-	for(int i=0; i<stack.size(); i++) {
-		if(top_coin[i] < 0) {
-			//there is no coin to look at here
-			continue;
-		}
+    for (int i = 0; i < stack.size(); ++i)
+    {
+        if((bitset >> i) & 1) {
+            if(first_color != stack[i].at(top_coin[i])) {
+                return false;
+            }
+            else {
+                take.push_back(i);
+            }
+        }
+        assert(top_coin[i] >= 0);
+    }
 
-		int color = stack[i][top_coin[i]];
-
-		auto item = result.find(color);
-		if(item != result.end()) {
-			//update integer representing color subset
-			int subset = item->second;
-			result[color] = subset + (1<<i);
-		}
-		else {//add the item
-			result[color] = (1<<i);
-		}
-	}
-	return result;
+    return true;
 }
 
+
 int maximize_score(const vector< vector<int> >& stack,
-					vector<int> top_coin,
-					int bitset) {
-	//precondition:
-	//the subset given in 'bitset' on the coins 'top_coin' in the 'stack'
-	//consists of coins of the same color
+					vector<int>& top_coin) {
+    assert(top_coin.size() == stack.size());
+    //check memo
+    vector<int> fvalues = top_coin;
+    auto result = memo.find(fvalues);
+    if(result != memo.end())
+        return result->second;
 
-	vector<int> func_value = top_coin;
-	func_value.push_back(bitset);
+    //check if there is a invalid top_coin position
+    for (int i = 0; i < top_coin.size(); ++i)
+    {
+        if(top_coin[i] < 0) {
 
-	//check if we have already computed this function before
-	auto item = memo.find(func_value);
-	if(item != memo.end()) {
-		return item->second;
-	} //else continue to compute
+            assert(memo.find(fvalues) == memo.end());
+            memo[fvalues] = 0;
+            return memo[fvalues];
+        }
+    }
 
+    //go over all possible subset, check if it is valid color subset
+    int max_score = 0;
+    for (int bitset = 1; bitset < pow(2, stack.size()); ++bitset)
+    {   
+        vector<int> take;
+        if(subset_valid(stack, top_coin, bitset, take)) {
+            //open recursion
+            assert(take.size() > 0);
+            int color = stack.at(take[0]).at(top_coin.at(take[0]));
+            for (int k : take)
+            {   
+                assert(color == stack.at(k).at(top_coin.at(k)));
+                top_coin[k]--;
+            }
 
-	//compute the score of the color subset given in 'bitset'
-	//count the '1' bits in 'bitset'
-	//also reduce the top_coin values for the coins we take
-	int subset_size = 0;
-	for(int i=0; i<stack.size(); i++) {
-		if(((bitset>>i) & 1) == 1) {
-			subset_size++;
-			top_coin[i]--;
-		}
-	}
+            if(take.size() >= 2)
+                color_candidates.insert(color);
 
-	int score = (subset_size == 1) ? 0 : pow(2, subset_size-2);
+            int score = (take.size() == 1) ? 0 : pow(2, take.size()-2);
+            int val = maximize_score(stack, top_coin);
 
+            max_score = std::max(max_score, val + score);
 
-	unordered_map<int, int> color_subset = 
-				find_color_subsets(stack, top_coin);
+            for (int k : take)
+            {
+                top_coin[k]++;
+            }
+        }
+    }
 
+    assert(memo.find(fvalues) == memo.end());
 
-	//with updated top coins start new subroutine
-	int max_score = 0;
+    memo[fvalues] = max_score;
+    assert(memo[fvalues] >= 0);
+    return memo[fvalues];
 
-	for(unordered_map<int, int>::iterator it = color_subset.begin();
-		it != color_subset.end();
-		it++) {
-		//with i we model which subset of the top coins we take
-		//e.g.:
-		//00001 would be only coin of stack 1 taken
-		//11111 would be top coins of all stacks
-		int new_max = maximize_score(stack, top_coin, it->second);
-		max_score = max(max_score, new_max);
-	}
-
-	memo.insert(make_pair(func_value, score+max_score));
-	return score + max_score;
 }
 
 
@@ -120,10 +128,12 @@ void testcase() {
 	}
 
 	//set up memo 
-	memo = unordered_map< vector<int>, int, v_hash>();
+	memo.clear();
+    color_candidates.clear();
 
 	//read values of chips
 	for(int s=0; s<n_stacks; s++) {
+        stack[s].reserve(stacksize[s]);
 		for(int i=0; i<stacksize[s]; i++) {
 			int val;
 			cin >> val;
@@ -131,24 +141,10 @@ void testcase() {
 		}
 	}
 
-	unordered_map<int, int> color_subset = 
-				find_color_subsets(stack, top_coin);
+    int res = maximize_score(stack, top_coin);
+    //cout << color_candidates << endl;
 
-
-	int max_score = 0;
-
-	for(unordered_map<int, int>::iterator it = color_subset.begin();
-		it != color_subset.end();
-		it++) {
-		//with i we model which subset of the top coins we take
-		//e.g.:
-		//00001 would be only coin of stack 1 taken
-		//11111 would be top coins of all stacks
-		int new_max = maximize_score(stack, top_coin, it->second);
-		max_score = max(max_score, new_max);
-	}
-
-	cout << max_score << endl;
+	cout << res << endl;
 
 }
 
