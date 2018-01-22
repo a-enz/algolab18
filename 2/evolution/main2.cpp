@@ -23,8 +23,25 @@ vector<string> species_name;
 vector<int> species_age;
 vector< vector<int> > tree;
 
+int bs(const vector<int>& path, const int age) {
+
+    assert(path.size() > 0);
+    int lmin=0, lmax=path.size()-1;
+
+    while(lmin<lmax) {
+        int mid = lmin + (lmax - lmin) / 2;
+
+        if(species_age[path[mid]] > age) 
+            lmin = mid+1;
+        else
+            lmax = mid;
+    }
+
+    return path[lmin];
+}
+
 void dfs(int v, vector<int>& path, 
-                vector< vector< pair<int, int> > > query, 
+                vector< vector< pair<int, int> > >& query, 
                 vector<int>& answers) {
     //update path
     path.push_back(v);
@@ -34,6 +51,7 @@ void dfs(int v, vector<int>& path,
     {
         int age = query[v][i].first;
         int q_idx = query[v][i].second;
+
         
         auto species = upper_bound(path.begin(), path.end(), age, 
             [&](const int& val, const int& element) -> bool {
@@ -98,7 +116,7 @@ void testcases() {
     
     
     //answer queries
-    vector<int> answers(q_queries,-1);
+    vector<int> answers(q_queries, -1);
     vector<int> path;
     
     dfs(luca_idx, path, query, answers);
