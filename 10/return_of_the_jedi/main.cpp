@@ -1,3 +1,4 @@
+#undef NDEBUG
 
 // Includes
 // ========
@@ -7,6 +8,7 @@
 #include <algorithm>
 #include <climits>
 #include <assert.h>
+#include <signal.h>
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/prim_minimum_spanning_tree.hpp>
@@ -50,26 +52,25 @@ void dfs(int v, int max_c,
             dfs(u, new_max, visited, MST, cost, max);
         }
     }
-
 }
 
 // Functions
 // ========= 
 void testcases() {
 	//read number of planets and index of start vertice
-	size_t n, start;
+	int n, start;
 	cin >> n >> start;
 	
 	//bild graph
-	size_t V=n;
+	int V=n;
 	Graph G(V);	// creates an empty graph on n vertices
 	WeightMap weightmap = boost::get(boost::edge_weight, G);	
 	
 	//read connection costs: 0-indexing
 	vector< vector<int> > cost(n, vector<int>(n));
-	for (size_t i = 0; i < n-1; i += 1)
+	for (int i = 0; i < n-1; i += 1)
 	{
-	    for (size_t j = i+1; j < n; j += 1)
+	    for (int j = i+1; j < n; j += 1)
 	    {
 	        cin >> cost[i][j]; //j >= i+1, i <- {0,...,n-2}
             cost[j][i] = cost[i][j]; //just store the symetric part of matrix, easier to read out values
@@ -87,8 +88,8 @@ void testcases() {
 			boost::root_vertex(start-1)); //start is in 1-indexing!!
 
     //mst cost
-    int totalweight = 0;
-    for (size_t i = 0; i < V; ++i) {
+    long totalweight = 0;
+    for (int i = 0; i < V; ++i) {
         if (primpredmap[i] != i) {
             Edge e; bool success;
             boost::tie(e, success) = boost::edge(i, primpredmap[i], G);
@@ -102,7 +103,7 @@ void testcases() {
     //store mst in an adj matrix
     vector< vector<int> > MST(V, vector<int>());
 
-    for (size_t i = 0; i < V; ++i)
+    for (int i = 0; i < V; ++i)
     {
         if(primpredmap[i] != i) {
             MST[i].push_back(primpredmap[i]);
@@ -113,7 +114,7 @@ void testcases() {
     //do dfs on MST for every node
     //and store list of max edge weights on path to every other node in MST
     vector< vector<int> > max_path_weight(V, vector<int>(V));
-    for (size_t i = 0; i < V; ++i)
+    for (int i = 0; i < V; ++i)
     {
         //dfs
         vector<bool> visited(V, false);
@@ -123,9 +124,9 @@ void testcases() {
     //go over all pairs of vertices and check for the minimum difference
     //between a direct edge and the maximal edge on the mst path
     int min_added_cost = INT_MAX;
-    for (size_t i = 0; i < n-1; i += 1)
+    for (int i = 0; i < n-1; i += 1)
     {
-        for (size_t j = i+1; j < n; j += 1)
+        for (int j = i+1; j < n; j += 1)
         {
             //skip edges in the MST
             if(primpredmap[i] == j || primpredmap[j] == i) continue;
@@ -135,6 +136,7 @@ void testcases() {
             //cout << "path weight: " << max_path_weight[i][j] << endl;
 
             int diff = c_direct - c_path;
+
             assert(diff >= 0);
 
             if(diff < min_added_cost) {
