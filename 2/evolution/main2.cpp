@@ -55,7 +55,7 @@ void dfs(int v, vector<int>& path,
         
         auto species = upper_bound(path.begin(), path.end(), age, 
             [&](const int& val, const int& element) -> bool {
-                return !(val < species_age[element]);
+                return val >= species_age[element];
             });
             
         assert(answers[q_idx] == -1);
