@@ -34,31 +34,15 @@ int maximize_sum(const int idx, int k) { //k: number of elements we still need t
     if(sol != memo.end())
         return sol->second;
     
-
-    if(k == 0){ //can't take any more intervals{
-        res = 0;
-        memo.insert(make_pair(inputs, res));
-        return res;
-    }
-    
     //base case
-    if(idx == intervals.size()-1) {
-        res = size;
-        memo.insert(make_pair(inputs, res));
-        return res;
+    if(k == 0 || idx == intervals.size()){ //can't take any more intervals{
+        memo[inputs] = 0;
+        return memo[inputs];
     }
         
     //normal case
-    //find next possible interval if we want to use current
-    
+    //find next possible interval if we want to use current  
     auto next_it = upper_bound(intervals_start.begin(), intervals_start.end(), current.second);
-    if(next_it == intervals_start.end()) {
-        res =  max(size, maximize_sum(idx+1, k));
-        memo.insert(make_pair(inputs, res));
-        return res;
-    }
-    
-    
     int next_idx = distance(intervals_start.begin(), next_it);
     
     res =  max(size + maximize_sum(next_idx, k-1), maximize_sum(idx+1, k));
@@ -147,10 +131,10 @@ void testcases() {
 
 // Main function looping over the testcases
 int main() {
-	//ios_base::sync_with_stdio(false);
-	int T;	cin >> T;	// First input line: Number of testcases.
-	while(T--)	testcases();
-	return 0;
+    //ios_base::sync_with_stdio(false);
+    int T;  cin >> T;   // First input line: Number of testcases.
+    while(T--)  testcases();
+    return 0;
 }
 
 
