@@ -1,10 +1,6 @@
 #include <iostream>
-#include <vector>
-#include <algorithm>
-#include <climits>
-#include <cmath>
 #include <cassert>
-#include "prettyprint.hpp"
+
 #include <CGAL/basic.h>
 #include <CGAL/QP_models.h>
 #include <CGAL/QP_functions.h>
@@ -29,7 +25,7 @@ LT compute_lookup(const vector< vector<int64_t> >& points) {
 
     LT table;
     table.resize(points.size());
-    for (int i = 0; i < points.size(); ++i)
+    for (size_t i = 0; i < points.size(); ++i)
     {   
 
         table[i].resize(31);
@@ -39,7 +35,7 @@ LT compute_lookup(const vector< vector<int64_t> >& points) {
         table[i][0][2] = ET(1);
 
         assert(table[i].size() == 31);
-        for (int exp = 1; exp < table[i].size(); ++exp)
+        for (size_t exp = 1; exp < table[i].size(); ++exp)
         {
             table[i][exp].resize(3);
             table[i][exp][0] = table[i][exp-1][0] * points[i][0];
@@ -59,20 +55,22 @@ ET mult_and_exp(const vector< vector<ET> >& table, int a, int b, int c) {
     return table[a][0] * table[b][1] * table[c][2];
 }
 
-bool is_infeasible(int degree, const LT& cells_table,
+bool too_small(int degree, const LT& cells_table,
                                 const LT& tumors_table) {
     //cout << "=== Degree " << degree << " =====" << endl;
     Program lp (CGAL::SMALLER, false, 0, false, 0);
     int var_counter = 0;
 
-    int a=0, b=0, c=0;
-    for (; a+b+c <= degree; ++a)
+    for (int a=0; a <= degree; ++a)
     {
-        for (; a+b+c <= degree; ++b)
+        for (int b=0; b <= degree-a; ++b)
         {
-            for (; a+b+c <= degree; ++c)
+            for (int c=0; c <= degree-a-b; ++c)
             {   
-                for (int i = 0; i < tumors_table.size(); ++i)
+//                cout << "setting var " << var_counter << " with exponents "
+//                    << a << " " << b << " " << c;
+                assert(a+b+c <= 30);
+                for (size_t i = 0; i < tumors_table.size(); ++i)
                 {   
                     //x^a * y^b * z^c
                     lp.set_a(var_counter, i, 
@@ -80,40 +78,43 @@ bool is_infeasible(int degree, const LT& cells_table,
                 }
 
                 //set cell constraints
-                for (int i = 0; i < cells_table.size(); ++i)
+                for (size_t i = 0; i < cells_table.size(); ++i)
                 { 
                     //x^a * y^b * z^c
                     lp.set_a(var_counter, i+tumors_table.size(), 
                         mult_and_exp(cells_table[i], a, b, c));
                 }
-
+                
+//                cout << "...done\n";
                 var_counter++;
             }
-            c=0;
         }
-        b=0;
     }
+    
+//    cout << "setting constraints...\n";
 
     //set tumor constraints boundary and slack variable
     //tumors need to be in areas with positive radiation
-    for (int i = 0; i < tumors_table.size(); ++i)
+    for (size_t i = 0; i < tumors_table.size(); ++i)
     {   
         lp.set_b(i, 1);
         lp.set_r(i, CGAL::LARGER);
     }
 
     //cells need to be in areas with negative radiation
-    for (int i = 0; i < cells_table.size(); ++i)
+    for (size_t i = 0; i < cells_table.size(); ++i)
     { 
         int idx = i+tumors_table.size();
         lp.set_b(idx, -1);
         lp.set_r(idx, CGAL::SMALLER);
     }
-
+    
+//    cout << "solving LP\n";
+    
     // solve the program, using ET as the exact type    
     CGAL::Quadratic_program_options options;
-    options.set_pricing_strategy(CGAL::QP_BLAND);  
-    Solution s = CGAL::solve_linear_program(lp, ET());
+    options.set_pricing_strategy(CGAL::QP_BLAND);
+    Solution s = CGAL::solve_linear_program(lp, ET(), options);
     assert (s.solves_linear_program(lp));
 
     //run the LP and check if there exists a solution 
@@ -156,33 +157,33 @@ void testcases() {
     LT tumors_table = compute_lookup(tumors);
 
     //do exponential and binary search 
-    cout << "expsearch";
+//    cout << "expsearch";
     int lmin = 1, lmax = 1;
-    while(is_infeasible(lmax, cells_table, tumors_table) && lmax <=30) {
+    while(too_small(lmax, cells_table, tumors_table) && lmax <=30) {
         lmax *= 2;
-        cout << ".";
+//        cout << ".";
     }
-    cout << endl;
+//    cout << endl;
 
     if(lmax > 30) {
         cout << "Impossible!\n";
         return;
     }
 
-    cout << "binsearch";
+//    cout << "binsearch with upper bound " << lmax << endl;
 
     while(lmin < lmax) {
         int mid = lmin + (lmax - lmin) / 2;
 
-        cout << ".";
+//        cout << "." << endl;
 
-        if(is_infeasible(mid, cells_table, tumors_table)) {
+        if(too_small(mid, cells_table, tumors_table)) {
             lmin = mid+1;
         }
         else
             lmax = mid;
     }
-    cout << endl;
+//    cout << endl;
 
     cout << lmax << endl;
 
