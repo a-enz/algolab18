@@ -1,3 +1,4 @@
+#undef NDEBUG
 #include <iostream>
 #include <cassert>
 
@@ -17,27 +18,23 @@ typedef CGAL::Quadratic_program<ET> Program;
 typedef CGAL::Quadratic_program_solution<ET> Solution;
 typedef vector< vector< vector<ET> > > LT;
 
-LT compute_lookup(const vector< vector<int64_t> >& points) {
+LT compute_lookup(const vector< vector<ET> >& points) {
     //for each point i:
     //  compute each possible product x^a * y^b * z^c
     //  thus the four tuple (i, a, b, c) maps to the product
     //  (i, a, b, c) -> x_i^a * y_i^b * z_i^c
 
-    LT table;
-    table.resize(points.size());
-    for (size_t i = 0; i < points.size(); ++i)
+    LT table(points.size());
+    for (size_t i = 0; i < table.size(); ++i)
     {   
-
-        table[i].resize(31);
-        table[i][0].resize(3);
+        table[i] = vector< vector<ET> >(31, vector<ET>(3));
         table[i][0][0] = ET(1);
         table[i][0][1] = ET(1);
         table[i][0][2] = ET(1);
 
-        assert(table[i].size() == 31);
+        //assert(table[i].size() == 31);
         for (size_t exp = 1; exp < table[i].size(); ++exp)
         {
-            table[i][exp].resize(3);
             table[i][exp][0] = table[i][exp-1][0] * points[i][0];
             table[i][exp][1] = table[i][exp-1][1] * points[i][1];
             table[i][exp][2] = table[i][exp-1][2] * points[i][2];
@@ -57,7 +54,7 @@ ET mult_and_exp(const vector< vector<ET> >& table, int a, int b, int c) {
 
 bool too_small(int degree, const LT& cells_table,
                                 const LT& tumors_table) {
-    //cout << "=== Degree " << degree << " =====" << endl;
+
     Program lp (CGAL::SMALLER, false, 0, false, 0);
     int var_counter = 0;
 
@@ -67,9 +64,6 @@ bool too_small(int degree, const LT& cells_table,
         {
             for (int c=0; c <= degree-a-b; ++c)
             {   
-//                cout << "setting var " << var_counter << " with exponents "
-//                    << a << " " << b << " " << c;
-                assert(a+b+c <= 30);
                 for (size_t i = 0; i < tumors_table.size(); ++i)
                 {   
                     //x^a * y^b * z^c
@@ -85,13 +79,10 @@ bool too_small(int degree, const LT& cells_table,
                         mult_and_exp(cells_table[i], a, b, c));
                 }
                 
-//                cout << "...done\n";
                 var_counter++;
             }
         }
     }
-    
-//    cout << "setting constraints...\n";
 
     //set tumor constraints boundary and slack variable
     //tumors need to be in areas with positive radiation
@@ -109,13 +100,11 @@ bool too_small(int degree, const LT& cells_table,
         lp.set_r(idx, CGAL::SMALLER);
     }
     
-//    cout << "solving LP\n";
-    
     // solve the program, using ET as the exact type    
     CGAL::Quadratic_program_options options;
     options.set_pricing_strategy(CGAL::QP_BLAND);
     Solution s = CGAL::solve_linear_program(lp, ET(), options);
-    assert (s.solves_linear_program(lp));
+    //assert (s.solves_linear_program(lp));
 
     //run the LP and check if there exists a solution 
     //and verify that the slack variable is not zero
@@ -128,21 +117,21 @@ void testcases() {
     int h_cells, t_tumors;
     cin >> h_cells >> t_tumors;
 
-    vector< vector<int64_t> > cells(h_cells, vector<int64_t>(3)); //x, y, z
-    vector< vector<int64_t> > tumors(t_tumors, vector<int64_t>(3));
+    vector< vector<ET> > cells(h_cells, vector<ET>(3)); //x, y, z
+    vector< vector<ET> > tumors(t_tumors, vector<ET>(3));
 
     for (int i = 0; i < h_cells; ++i)
     {   
-        int64_t x, y, z;
+        int x, y, z;
         cin >> x >> y >> z;
-        cells[i] = {x, y, z};
+        cells[i] = {ET(x), ET(y), ET(z)};
     }
 
     for (int i = 0; i < t_tumors; ++i)
     {        
-        int64_t x, y, z;
+        int x, y, z;
         cin >> x >> y >> z;
-        tumors[i] = {x, y, z};
+        tumors[i] = {ET(x), ET(y), ET(z)};
     }
 
     //check special case
@@ -157,35 +146,27 @@ void testcases() {
     LT tumors_table = compute_lookup(tumors);
 
     //do exponential and binary search 
-//    cout << "expsearch";
     int lmin = 1, lmax = 1;
-    while(too_small(lmax, cells_table, tumors_table) && lmax <=30) {
+    while(lmax <=30 && too_small(lmax, cells_table, tumors_table)) {
         lmax *= 2;
-//        cout << ".";
     }
-//    cout << endl;
-
-    if(lmax > 30) {
-        cout << "Impossible!\n";
-        return;
-    }
-
-//    cout << "binsearch with upper bound " << lmax << endl;
+    
+    lmax = min(lmax, 31);
 
     while(lmin < lmax) {
         int mid = lmin + (lmax - lmin) / 2;
-
-//        cout << "." << endl;
-
-        if(too_small(mid, cells_table, tumors_table)) {
+        assert(mid <= 30);
+        assert(mid >= 1);
+        if(too_small(mid, cells_table, tumors_table))
             lmin = mid+1;
-        }
         else
             lmax = mid;
     }
-//    cout << endl;
-
-    cout << lmax << endl;
+    
+    if(lmin > 30)
+        cout << "Impossible!\n";
+    else
+        cout << lmax << endl;
 
 }
 
