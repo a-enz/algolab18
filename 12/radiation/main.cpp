@@ -156,17 +156,25 @@ void testcases() {
     LT tumors_table = compute_lookup(tumors);
 
     //do exponential and binary search 
+    cout << "expsearch";
     int lmin = 1, lmax = 1;
-    while(is_infeasible(lmax, cells_table, tumors_table) && lmax <=30)
+    while(is_infeasible(lmax, cells_table, tumors_table) && lmax <=30) {
         lmax *= 2;
+        cout << ".";
+    }
+    cout << endl;
 
     if(lmax > 30) {
         cout << "Impossible!\n";
         return;
     }
 
+    cout << "binsearch";
+
     while(lmin < lmax) {
         int mid = lmin + (lmax - lmin) / 2;
+
+        cout << ".";
 
         if(is_infeasible(mid, cells_table, tumors_table)) {
             lmin = mid+1;
@@ -174,6 +182,7 @@ void testcases() {
         else
             lmax = mid;
     }
+    cout << endl;
 
     cout << lmax << endl;
 
