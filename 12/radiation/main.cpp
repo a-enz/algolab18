@@ -151,8 +151,15 @@ void testcases() {
         lmax *= 2;
     }
     
-    lmax = min(lmax, 31);
-
+    //check boundary
+    if(high > 30 && too_small(30)) {
+        cout << "Impossible!\n";
+        return;
+    }
+    
+    //clip upper bound
+    high = min(high, 30);
+    
     while(lmin < lmax) {
         int mid = lmin + (lmax - lmin) / 2;
         assert(mid <= 30);
@@ -163,10 +170,7 @@ void testcases() {
             lmax = mid;
     }
     
-    if(lmin > 30)
-        cout << "Impossible!\n";
-    else
-        cout << lmax << endl;
+    cout << lmax << endl;
 
 }
 
