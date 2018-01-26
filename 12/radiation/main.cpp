@@ -152,13 +152,13 @@ void testcases() {
     }
     
     //check boundary
-    if(high > 30 && too_small(30)) {
+    if(lmax > 30 && too_small(30, cells_table, tumors_table)) {
         cout << "Impossible!\n";
         return;
     }
     
     //clip upper bound
-    high = min(high, 30);
+    lmax = min(lmax, 30);
     
     while(lmin < lmax) {
         int mid = lmin + (lmax - lmin) / 2;
