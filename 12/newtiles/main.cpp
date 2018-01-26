@@ -41,8 +41,7 @@ void testcases() {
         rows[i-1] = val;
     }
     
-//    cout << rows << endl;
-    
+
     int height_dp = h_height-2;
     int width_dp = pow(2, w_width-2);
     vector< vector<int> > table(height_dp, vector<int>(width_dp, 0));
@@ -66,7 +65,6 @@ void testcases() {
             }
         }
     }
-    
                     
     //count ones in this bitmask
     for (int bitmask = 1; bitmask < width_dp; bitmask += 1)
@@ -78,10 +76,8 @@ void testcases() {
             }
         }
     }
-    
-//    cout << is_candidate << endl;
-//    cout << amount_ones << endl;
-    
+
+
     //fill dp table
     const int ALL_ONES_MASK = width_dp-1;
     
@@ -89,7 +85,6 @@ void testcases() {
     {
         for (int bitmask = 0; bitmask < pow(2, w_width-2); bitmask += 1)
         {   
-//            cout << "mask " << bitmask << "size " << table.at(i).size() << endl;
             assert(bitmask < table[i].size());
             assert(bitmask <= ALL_ONES_MASK);
             int opt1;
@@ -99,14 +94,16 @@ void testcases() {
                 //placement of tiles makes sense for this bitmask
                 //because it has even number of consecutive 1
                 //and row[i] and row[i-1] allows placement as bitmask suggests
-                //cout << bitmask << endl;
                 assert(amount_ones[bitmask] % 2 == 0);
                 int inverted_bitmask = ALL_ONES_MASK ^ bitmask;
                 assert(inverted_bitmask < width_dp);
                 opt1 = table[i-1][inverted_bitmask] + amount_ones[bitmask] / 2;
             }
+            else if (bitmask == 0) {
+                opt1 = *max_element(table[i-1].begin(), table[i-1].end());
+            }
             else {
-                opt1 = 0;
+                opt1 = table[i-1][bitmask];
             }
             
             int opt2 = 0;
@@ -123,13 +120,6 @@ void testcases() {
             table[i][bitmask] = max(opt1, opt2);
         }
     }
-    
-    
-//    cout << "table\n" << endl;
-//    for (int i = 0; i < table.size(); i += 1)
-//    {
-//        cout << table[i] << endl;
-//    }
     
     //read solution from table
     cout << table[height_dp-1][width_dp-1] << endl;
