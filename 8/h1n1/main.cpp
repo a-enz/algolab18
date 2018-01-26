@@ -3,6 +3,9 @@
 #include <cmath>
 #include <algorithm>
 #include <unordered_set>
+#include <map>
+#include <queue>
+#include <climits>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
@@ -17,6 +20,9 @@ typedef Triangulation::Finite_edges_iterator  Edge_iterator;
 typedef Triangulation::Face_handle  Face_handle;
 typedef K::Point_2  P;
 typedef Triangulation::Vertex_handle    Vertex_handle;
+typedef Triangulation::Face_circulator  Face_circ;
+
+const double DMAX =  numeric_limits<double>::max();
 
 
 bool finds_way_out(const Triangulation &t, const Face_handle &f, 
@@ -53,6 +59,34 @@ bool finds_way_out(const Triangulation &t, const Face_handle &f,
 
     //only reached if no recursion returns 'true'
     return false;
+}
+
+void bfs_escape_rad(const Triangulation &t, map<Face_handle, K::FT>& escape_map) {
+    //start from infinite faces
+    Face_circ f = t.incident_faces(t.infinite_vertex());
+    queue<Face_handle> Q;
+    
+    //push all infinite faces  
+    do {
+        Q.push(f);
+    } while (++f != t.incident_faces(t.infinite_vertex()));
+   
+    while(not Q.empty()) {
+        const Face_handle current = Q.front();
+        Q.pop();
+        
+        if(t.is_infinite(fh) && escape_map.find(fh) == escape_map.end()) {
+            escape_map[fh] = DMAX;
+            //continue with the finite neighbors 
+        }
+        else {
+        
+        }
+            
+            
+            
+        
+    }
 }
 
 
