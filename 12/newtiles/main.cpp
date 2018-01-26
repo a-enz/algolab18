@@ -28,6 +28,7 @@ void testcases() {
         return;
     }
     
+    //from now on ignore border of '0's
     //convert plan to rows of bitstrings
     vector<int> rows(h_height-2, 0);
     for (int i = 1; i < h_height-1; i += 1)
@@ -81,9 +82,9 @@ void testcases() {
     //fill dp table
     const int ALL_ONES_MASK = width_dp-1;
     
-    for (unsigned int i = 1; i < table.size(); i += 1)
+    for (unsigned int i = 1; i < height_dp; i += 1)
     {
-        for (int bitmask = 0; bitmask < pow(2, w_width-2); bitmask += 1)
+        for (int bitmask = 0; bitmask < width_dp; bitmask += 1)
         {   
             assert(bitmask < table[i].size());
             assert(bitmask <= ALL_ONES_MASK);
