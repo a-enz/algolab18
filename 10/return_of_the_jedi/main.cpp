@@ -113,11 +113,12 @@ void testcases() {
 
     //do dfs on MST for every node
     //and store list of max edge weights on path to every other node in MST
-    vector< vector<int> > max_path_weight(V, vector<int>(V));
+    vector< vector<int> > max_path_weight(V, vector<int>(V, 0));
     for (int i = 0; i < V; ++i)
     {
         //dfs
         vector<bool> visited(V, false);
+        visited[i] = true;
         dfs(i, 0, visited, MST, cost, max_path_weight[i]);
     }
 
