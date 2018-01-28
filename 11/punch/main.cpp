@@ -22,20 +22,25 @@ struct Bev {
 };
 
 //unordered_map< Tuple_2,Tuple_2, boost::hash<Tuple_2 > > memo;
-vector< vector< Tuple_2> > memo;
+vector< vector<Tuple_2> > memo;
 
 Tuple_2 min_cost_max_bev(int pos, int liters, vector<Bev>& bev) {
-    Tuple_2 res = make_tuple(1000000, 0);
+    Tuple_2 res = make_tuple(1000001, 0);
     
-    //base case
     assert(pos >= 0);
     
+    //base case
     if(liters <= 0) {
         return make_tuple(0, 0);
     }
     else if(pos == bev.size()) {
         return res;
     }
+    
+
+    //cout << "l " << liters << " s " << memo[pos].size() << endl;
+    //assert(liters < (int) memo[pos].size());
+    
     
     
     //check memo
@@ -78,8 +83,8 @@ void testcases() {
     cin >> n_bev >> k_ppl;
     
     //clear memo;
-    memo = vector< vector< tuple<int, int> > >(n_bev, vector< tuple<int, int> >(k_ppl+1, 
-                                                                            make_tuple(-1, -1)));
+    memo = vector< vector< tuple<int, int> > >
+                    (n_bev, vector< tuple<int, int> >(k_ppl+1, make_tuple(-1, -1)));
     
     vector<Bev> beverage(n_bev);
     
