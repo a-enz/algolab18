@@ -19,23 +19,30 @@ typedef tuple<int, int> Tuple_2;
 struct Bev {
     int cost;
     int vol;
-    int costprio;
 };
 
-unordered_map< Tuple_2,Tuple_2, boost::hash<Tuple_2 > > memo;
+//unordered_map< Tuple_2,Tuple_2, boost::hash<Tuple_2 > > memo;
+vector< vector< Tuple_2> > memo;
 
 Tuple_2 min_cost_max_bev(int pos, int liters, vector<Bev>& bev) {
     Tuple_2 res = make_tuple(1000000, 0);
-     
-    Tuple_2 fvalue = make_tuple(pos, liters);
-    if(memo.find(fvalue) != memo.end()) 
-        return memo[fvalue];
     
+    //base case
     assert(pos >= 0);
-    if(pos == bev.size() || liters <= 0) {
-        memo[fvalue] = res;
-        return memo[fvalue];
+    
+    if(liters <= 0) {
+        return make_tuple(0, 0);
     }
+    else if(pos == bev.size()) {
+        return res;
+    }
+    
+    
+    //check memo
+    int cost, d_bev;
+    tie(cost, d_bev) = memo[pos][liters];
+    if(cost != -1 && d_bev != -1) 
+        return memo[pos][liters];
 
 
     auto comp = [](const Tuple_2& a, const Tuple_2& b)->bool{
@@ -48,36 +55,21 @@ Tuple_2 min_cost_max_bev(int pos, int liters, vector<Bev>& bev) {
                     else
                         return c_a < c_b;
                 };
-                
-    //take beverage 0 times
+    //general case      
+    //1) take beverage 0 times
     res = min(res, min_cost_max_bev(pos+1, liters, bev), comp);
     
-//    //take it multiple times
-//    int a = 1;
-//    for (; a * bev[pos].vol < liters; a += 1)
-//    {
-//       int cost, d_bev;
-//       tie(cost, d_bev) = min_cost_max_bev(pos+1, liters - a * bev[pos].vol, bev);
-//       res = min(res, make_tuple(cost + bev[pos].cost * a, d_bev + 1), comp); 
-//       //cout << "updating res " << res << endl;
-//    }
-    
-    //take beverage 1 time
-    int cost, d_bev;
+    //2) take beverage 1 time (increase diversity) and move on
     tie(cost, d_bev) = min_cost_max_bev(pos+1, liters - bev[pos].vol, bev);
-    res = min(res, , comp);
+    res = min(res, make_tuple(cost + bev[pos].cost, d_bev + 1) , comp);
     
-    
-    
-    
-    
-    //take it so many times we fill up all the remaining liters
-    int amount = 
-    res = min(res, make_tuple( * bev[pos].cost, 1), comp); 
-    
-//    cout << "returning " << res << endl;
-    memo[fvalue] = res;
-    return memo[fvalue];
+    //3) take beverage 1 time, stay on the same position (not increasing diversity)
+    tie(cost, d_bev) = min_cost_max_bev(pos, liters - bev[pos].vol, bev);
+    res = min(res, make_tuple(cost + bev[pos].cost, d_bev) , comp);
+
+
+    memo[pos][liters] = res;
+    return memo[pos][liters];
 }
 
 
@@ -86,29 +78,21 @@ void testcases() {
     cin >> n_bev >> k_ppl;
     
     //clear memo;
-    memo.clear();
+    memo = vector< vector< tuple<int, int> > >(n_bev, vector< tuple<int, int> >(k_ppl+1, 
+                                                                            make_tuple(-1, -1)));
     
     vector<Bev> beverage(n_bev);
-    int min_costprio = INT_MAX;
     
     for (unsigned int i = 0; i < n_bev; i += 1)
     {
         cin >> beverage[i].cost;
         cin >> beverage[i].vol;
-           
-        int mult = k_ppl / beverage[i].vol;
-        if(k_ppl % beverage[i].vol != 0) 
-            mult += 1;
-        
-        beverage[i].costprio = beverage[i].cost * mult;
-        
-        min_costprio = (min_costprio > beverage[i].costprio) ?
-                        beverage[i].costprio : min_costprio;
     }
+
     
     int min_cost, max_bev;
     tie(min_cost, max_bev) = min_cost_max_bev(0, k_ppl, beverage);
-    
+
     cout << min_cost << " " << max_bev << endl;
 }
 
