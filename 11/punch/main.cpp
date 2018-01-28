@@ -25,7 +25,7 @@ struct Bev {
 vector< vector<Tuple_2> > memo;
 
 Tuple_2 min_cost_max_bev(int pos, int liters, vector<Bev>& bev) {
-    Tuple_2 res = make_tuple(1000001, 0);
+    Tuple_2 res = make_tuple(100010000, 0); //max total bev. cost
     
     assert(pos >= 0);
     
