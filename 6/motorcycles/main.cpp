@@ -3,27 +3,21 @@
 #include <algorithm>
 #include <climits>
 #include <set>
+#include <stack>
 
-#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 
 // Namespaces
 using namespace std;
 
-typedef CGAL::Exact_predicates_exact_constructions_kernel K;
-
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+typedef K::Ray_2 R;
+typedef K::Point_2 P;
 
 struct Biker {
-    long y0;
-    K::FT slope;
+    R ray;
     int idx;
 };
-
-K::FT slope(K::FT y0, K::FT y1, K::FT x1) {
-    K::FT diff = y1 - y0;
-    K::FT x = x1;
-    return diff / x;
-}
 
 // Functions
 // ========= 
@@ -34,32 +28,64 @@ void testcases() {
     vector<Biker> bikers(n_bikers);
     for (int i = 0; i < n_bikers; i += 1)
     {   
-        long y0, x1, y1;
-        cin >> y0 >> x1 >> y1;
-        bikers[i] = {y0, slope(y0, y1, x1), i};    
+        double y0, x, y1;
+        cin >> y0 >> x >> y1;  
+        bikers[i] = {R(P(0, y0), P(x, y1)), i};
     }
     
-    
-    //sort bikers by y0
+    //sort bikers ascending by y0
     sort(bikers.begin(), bikers.end(), [](const Biker &a, const Biker &b) -> bool {
-        return a.y0 > b.y0;
+        return a.ray.source().y() < b.ray.source().y();
     });
-    
-    //go through the sorted array and compare neighbors
-    set<int> winner;
-    Biker prev = bikers[0];
-    winner.insert(prev.idx);
-    K::FT max_allowed_slope = prev.slope;
-    for (unsigned int i = 1; i < n_bikers; i += 1)
+
+    stack<Biker> picked;
+    picked.push(bikers[0]);
+
+    for (int i = 1; i < n_bikers; ++i)
     {
-        Biker curr = bikers[i];
-        K::FT curr_slope = curr.slope;
-        if(curr_slope <= max_allowed_slope) {
-            winner.insert(curr.idx);
-            max_allowed_slope = curr_slope;
+        //compare this biker to already picked bikers
+        //and decide which to discard or keep
+        Biker current = bikers[i];
+        Biker prev = picked.top();
+        if(not CGAL::do_intersect(current.ray, prev.ray)) {
+            //bikers run in parallel or away from each other
+            picked.push(current);
         }
-        //max_allowed_slope = min(max_allowed_slope, curr_slope);
-        prev = curr;
+        else if(prev.ray.direction().dy() > 0) { //previous ray goes upwards
+            if(current.ray.direction().dy() >= 0) { //current ray goes horizontal or up
+                //remove top of stack until no intersection
+                while(not picked.empty() && 
+                        CGAL::do_intersect(current.ray, picked.top().ray)) {
+                    picked.pop();
+                }
+                picked.push(current);
+            }
+            else { //current ray goes downwards
+                assert(current.ray.direction().dy() < 0);
+
+                auto dir = current.ray.direction();
+                auto src = current.ray.source();
+                R mirrored = R(src, P(dir.dx(), src.y() - dir.dy()));
+
+                while(not picked.empty() && CGAL::do_intersect(mirrored, picked.top().ray)) {
+                    picked.pop();
+                }
+
+                if(picked.empty() || not CGAL::do_intersect(current.ray, picked.top().ray)) {
+                    picked.push(current);  
+                }
+            }
+        }
+        //else discard 'current' if it intersects with 'prev'
+        //  and prev is not going upwards
+    }
+
+    //put winners into ordered set
+    set<int> winner;
+    while(not picked.empty()) {
+        Biker b = picked.top();
+        picked.pop();
+        winner.insert(b.idx);
     }
     
     for (int w : winner)

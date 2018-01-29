@@ -2,19 +2,21 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
-#include <unordered_set>
-#include <map>
 #include <queue>
 #include <climits>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
+#include <CGAL/Triangulation_face_base_with_info_2.h>
 
 using namespace std;
 
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
-typedef CGAL::Delaunay_triangulation_2<K>  Triangulation;
+typedef CGAL::Triangulation_vertex_base_2<K> Vb;
+typedef CGAL::Triangulation_face_base_with_info_2<K::FT,K> Fb;
+typedef CGAL::Triangulation_data_structure_2<Vb,Fb> Tds;
+typedef CGAL::Delaunay_triangulation_2<K,Tds>  Triangulation;
 typedef Triangulation::Finite_faces_iterator  Face_iterator;
 typedef Triangulation::Finite_edges_iterator  Edge_iterator;
 typedef Triangulation::Face_handle  Face_handle;
@@ -24,94 +26,65 @@ typedef Triangulation::Face_circulator  Face_circ;
 
 const double DMAX =  numeric_limits<double>::max();
 
+void bfs_escape_rad(const Triangulation &t) {
+    //initialize info with small values for each finite face
+    for (Face_iterator f = t.finite_faces_begin(); f != t.finite_faces_end(); ++f)
+        f->info() = 0;
 
-bool finds_way_out(const Triangulation &t, const Face_handle &f, 
-                const double d, unordered_set<Face_handle> &visited) {
-    
-    // check if we reached infinite face 
-    if(t.is_infinite(f) || f == NULL) 
-        return true;
-
-    visited.insert(f);
-    // iterate over edges of face and check distance condition
-    // if distance condition holds: 
-    // open new recursion for every neighboring face no yet visited
-
-
-    for (int i = 0; i < 3; ++i)
-    {
-        P p1 = f->vertex(i)->point();
-        P p2 = f->vertex((i+1) % 3)->point();
-        K::FT dist = CGAL::squared_distance(p1, p2);
-
-        Face_handle nf = f->neighbor((i+2) % 3);
-
-        //check distance
-        //check nf not yet visited
-        if(4*d <= dist && 
-            visited.find(nf) == visited.end()) {
-
-            if(finds_way_out(t, nf, d, visited)) {
-                return true;
-            }
-        }
-    }
-
-    //only reached if no recursion returns 'true'
-    return false;
-}
-
-void bfs_escape_rad(const Triangulation &t, map<Face_handle, K::FT>& escape_map) {
     //start from infinite faces
     Face_circ f = t.incident_faces(t.infinite_vertex());
     queue<Face_handle> Q;
     
-    //push all infinite faces  
+    //push all infinite faces and initialize escape radii to large value
     do {
         Q.push(f);
+        f->info() = DMAX;
     } while (++f != t.incident_faces(t.infinite_vertex()));
    
     while(not Q.empty()) {
-        const Face_handle current = Q.front();
+        const Face_handle pf = Q.front();
         Q.pop();
         
-        if(t.is_infinite(fh) && escape_map.find(fh) == escape_map.end()) {
-            escape_map[fh] = DMAX;
-            //continue with the finite neighbors 
+        //go over all neighboring faces that are not infinite
+        //check the border edge and update maximal escape radius   
+        for (int i = 0; i < 3; ++i)
+        {
+            Face_handle cf = pf->neighbor(i);
+            if(not t.is_infinite(cf)) {
+                //check the maximal radius that allows to enter the child face
+                Vertex_handle v1 = pf->vertex((i+1) % 3);
+                Vertex_handle v2 = pf->vertex((i+2) % 3);
+
+                //propagate the maximum radius of parent
+                //but shrink that distance if the edge we're crossing has smaller
+                //length
+                K::FT dist = CGAL::squared_distance(v1->point(), v2->point());
+                dist = min(dist, pf->info());
+
+                //update child info if we found a larger escape radius
+                if(dist > cf->info()) {
+                    cf->info() = dist;
+                    Q.push(cf);
+                }
+            }
         }
-        else {
-        
-        }
-            
-            
-            
-        
     }
 }
 
 
-bool can_escape(const Triangulation &t, const P& start, const double d) {
+bool can_escape(const Triangulation& t, const P& start, const double d) {
     // first check how far the start is from the nearest infected
     Vertex_handle nearest = t.nearest_vertex(start);
     double dist_nearest = CGAL::squared_distance(nearest->point(), start);
-
 
     if(dist_nearest < d) {
         return false;
     }
     else {
-        // check if there is an escape route
-        // do a bfs or dfs over all edges and try to get to
-        // the 'outside' by reaching infinite face
-
-        // locate starting face using a hint
-        Face_handle f = t.locate(start, t.incident_faces(nearest)); 
-
-        //keep track of visited faces
-        unordered_set<Face_handle> visited;
-
-        //do dfs
-        return finds_way_out(t, f, d, visited);
+        Face_handle f = t.locate(start);
+        //safety radius is sqrt(d)
+        //thus (2*sqrt(d))^2 <= squared_distance allows escape
+        return 4 * d <= f->info();
     }
 }
 
@@ -139,6 +112,9 @@ void testcase(int n_infected) {
     // Triangulation of infected:
     Triangulation t;
     t.insert(pts.begin(), pts.end());
+
+    //do a bfs and compute the maximum allowed escape radius for each face
+    bfs_escape_rad(t);
 
     // process queries:
     for(int i=0; i<m_queries; i++)
