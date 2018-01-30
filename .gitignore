@@ -8,3 +8,4 @@ useful_resources
 # And all the file types you're interested in.
 !*.cpp
 !.gitignore
+!TODO.txt
