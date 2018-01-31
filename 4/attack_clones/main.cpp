@@ -2,101 +2,129 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include <queue>
+#include <cassert>
+#include <map>
+#include <set>
+#include "prettyprint.hpp"
 
 using namespace std;
 
+typedef pair<long,long> Interval;
+typedef map<int, vector<Interval> > Imap;
 
+long n_segments;
 
-typedef pair<int,int> P;
-
-//earliest deadline
-struct compareFunc
-{
-    bool operator()( P a, P b)
-    {
-        return a.second > b.second;
-    }
-};
-
-typedef priority_queue<P, vector<P>, compareFunc> Q;
-
-//corresponds to b-a in mod k
-int circ_diff(int a, int b, int k){
-	int res = b - a;
-	if(res < 0) return res + k;
-	else return res;
-}
-
-//transforms the circular interval into linear
-Q transform_interval_and_sort(vector<P> v, int starting_point, int k){
-
-	Q res;
-	int start, end;
-
-	for(int i=0; i<(int) v.size(); i++){
-
-		start = circ_diff(starting_point, v[i].first, k);
-		end = circ_diff(starting_point, v[i].second, k);
-
-		if(end < start) end += k;
-
-		res.push(P (start, end));
+int edf_shifted(int shift, vector<Interval>& intervals) {
+	//first shift all the intervals
+	assert(shift < n_segments);
+	for (int i = 0; i < intervals.size(); ++i)
+	{
+		//shift into the positive direction so
+		//we don't have to deal with negativ modulo
+		//'long' should prevent overflows
+		long s = intervals[i].first + (n_segments - shift);
+		long e = intervals[i].second + (n_segments - shift);
+		intervals[i] = make_pair(s % n_segments, e % n_segments);
 	}
 
-	return res;
+	//sort by end
+	sort(intervals.begin(), intervals.end(), 
+		[](const Interval& a, const Interval& b) -> bool{
+			if(a.second == b.second)
+				return a.first > b.first; //shorter intervals first
+			return a.second < b.second; //earliest deadline
+		});
+
+	//edf
+
+	assert(intervals.size() > 0);
+	vector<Interval> taken;
+	taken.push_back(intervals[0]);
+	for (int i = 1; i < intervals.size(); ++i)
+	{	
+		if(taken.back().second < intervals[i].first) {
+			taken.push_back(intervals[i]);
+		}
+	}
+	return taken.size();
 }
+
 
 void testcase(){
 
-	int n_jedi, n_segments; cin >> n_jedi >> n_segments;
+	int n_jedi;
+	cin >> n_jedi >> n_segments;
 
-	vector<P> jedi_segment(n_jedi);
-	Q jedi_queue;
+	vector<Interval> jedi_segment(n_jedi);
 
-	int a, b;
-
+	multiset<Interval> cover;
+	Imap start, end;
 	for(int i=0; i<n_jedi; i++){
-
+		long a, b;
 		cin >> a >> b;
-		jedi_segment[i] = P (a, b);
+
+		int a0 = a-1; 
+		int b0 = b % n_segments; //zero indexed, non-inclusive interval borders
+		jedi_segment[i] = make_pair(a-1, b-1); //zero indexing
+		if(b < a) //Interval wraps over 0
+			cover.insert(jedi_segment[i]);
+
+		auto si = start.find(a0), se = end.find(b0);
+		if(si == start.end()) 
+			start[a0] = {jedi_segment[i]};
+		else
+			si->second.push_back(jedi_segment[i]);
+
+		if(se == end.end()) 
+			end[b0] = {jedi_segment[i]};
+		else
+			se->second.push_back(jedi_segment[i]);
 	}
 
-	//algo start
+/*	cout << cover << endl;
+	cout << start << endl;
+	cout << end << endl;*/
+	int max_segments = 0;
+	if(cover.size() > 0) {
+		//scan for a coversize 1 (later 10)
+		Imap::iterator ie = end.begin(), is = start.begin();
+		while(ie != end.end() && cover.size() > 1) {
+			//cout << "cover " << coversize << " at shift " << shift << endl;
+			if(is == start.end() || *ie < *is) {
+				//remove intervals from cover
+				for (Interval itv : ie->second)
+					cover.erase(itv);
 
-	//search for shortest interval -> gets to be the start
+				ie++;
+			}
+			else if(*is < *ie) {
+				for (Interval itv : is->second)
+					cover.insert(itv);
 
-	P starting_segment = *min_element(jedi_segment.begin(), jedi_segment.end(), [](P a, P b){return abs(a.first-a.second) < abs(b.first-b.second);});
+				is++;
+			}
+			else { //*ie == *is
+				for (Interval itv : is->second)
+					cover.insert(itv);
+				for (Interval itv : ie->second)
+					cover.erase(itv);
 
-	//sort according to earliest deadline
-
-	jedi_queue = transform_interval_and_sort(jedi_segment, starting_segment.second, n_segments);
-
-	//loop through queue
-	//if top element has overlapping start -> discard
-	//if else res++
-	//check for cycleback of original segment structure
-
-	P current;
-	int occupied_pos = 0;
-	int res = 1;
-
-	while(!jedi_queue.empty()){
-
-		current = jedi_queue.top();
-
-		//cout << current.first << " " << current.second << endl;
-		
-		if(current.first > occupied_pos && current.second < n_segments) {
-			occupied_pos = current.second;
-			res++;
+				ie++;
+				is++;
+			}
 		}
 
-		jedi_queue.pop();
 
+		for(Interval itv : cover) {
+			int new_max = edf_shifted(itv.first, jedi_segment);
+			max_segments = max(new_max, max_segments);
+		}
 	}
-
-	cout << res << endl;
+	else {
+		max_segments = edf_shifted(0, jedi_segment);
+	}
+	
+	cout << max_segments << endl;
 }
 
 
