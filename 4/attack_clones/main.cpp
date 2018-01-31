@@ -3,14 +3,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cassert>
-#include <map>
-#include <set>
-#include "prettyprint.hpp"
 
 using namespace std;
 
 typedef pair<long,long> Interval;
-typedef map<int, vector<Interval> > Imap;
 
 long n_segments;
 
@@ -57,74 +53,51 @@ void testcase(){
 
 	vector<Interval> jedi_segment(n_jedi);
 
-	multiset<Interval> cover;
-	Imap start, end;
+	int coversize = 0;
+	vector<long> start, end;
 	for(int i=0; i<n_jedi; i++){
 		long a, b;
 		cin >> a >> b;
+		if(b < a || b == n_segments) //Interval wraps over 0
+			coversize++;
 
-		int a0 = a-1; 
-		int b0 = b % n_segments; //zero indexed, non-inclusive interval borders
-		jedi_segment[i] = make_pair(a-1, b-1); //zero indexing
-		if(b < a) //Interval wraps over 0
-			cover.insert(jedi_segment[i]);
+		a = a-1;
+		b = b-1; //convert to zero indexing 
+		jedi_segment[i] = make_pair(a, b);
 
-		auto si = start.find(a0), se = end.find(b0);
-		if(si == start.end()) 
-			start[a0] = {jedi_segment[i]};
-		else
-			si->second.push_back(jedi_segment[i]);
-
-		if(se == end.end()) 
-			end[b0] = {jedi_segment[i]};
-		else
-			se->second.push_back(jedi_segment[i]);
+		start.push_back(a);
+		end.push_back((b+1) % n_segments); //add one so b is the non-inclusive end of the interval
 	}
 
-/*	cout << cover << endl;
-	cout << start << endl;
-	cout << end << endl;*/
-	int max_segments = 0;
-	if(cover.size() > 0) {
-		//scan for a coversize 1 (later 10)
-		Imap::iterator ie = end.begin(), is = start.begin();
-		while(ie != end.end() && cover.size() > 1) {
-			//cout << "cover " << coversize << " at shift " << shift << endl;
-			if(is == start.end() || *ie < *is) {
-				//remove intervals from cover
-				for (Interval itv : ie->second)
-					cover.erase(itv);
+	sort(start.begin(), start.end());
+	sort(end.begin(), end.end());
 
-				ie++;
-			}
-			else if(*is < *ie) {
-				for (Interval itv : is->second)
-					cover.insert(itv);
-
-				is++;
-			}
-			else { //*ie == *is
-				for (Interval itv : is->second)
-					cover.insert(itv);
-				for (Interval itv : ie->second)
-					cover.erase(itv);
-
-				ie++;
-				is++;
-			}
+	//cout << start << endl;
+	//cout << end << endl;
+	//scan for a coversize 0 (later 10)
+	int shift = 0;
+	vector<long>::iterator is = start.begin(), ie = end.begin();
+	while(ie != end.end() && coversize > 0) {
+		//cout << "cover " << coversize << " at shift " << shift << endl;
+		if(is == start.end() || *ie < *is) {
+			shift = *ie;
+			coversize--;	
+			ie++;
 		}
-
-
-		for(Interval itv : cover) {
-			int new_max = edf_shifted(itv.first, jedi_segment);
-			max_segments = max(new_max, max_segments);
+		else if(*is < *ie) {
+			shift = *is;
+			coversize++;
+			is++;
+		}
+		else { //*ie == *is
+			shift = *is;
+			ie++;
+			is++;
 		}
 	}
-	else {
-		max_segments = edf_shifted(0, jedi_segment);
-	}
-	
-	cout << max_segments << endl;
+	//cout << "cover " << coversize << " at shift " << shift << endl;
+
+	cout << edf_shifted(shift, jedi_segment) << endl;
 }
 
 
@@ -139,3 +112,4 @@ int main(){
 
 	return 0;
 }
+
