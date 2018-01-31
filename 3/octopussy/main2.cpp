@@ -23,7 +23,7 @@ void testcases() {
     }
     
     priority_queue< tuple<int, int> > Q;
-    Q.push(make_tuple(times[0], 0));
+    Q.push({times[0], 0});
     vector<int> taken;
     
     while(not Q.empty()) {
@@ -34,8 +34,8 @@ void testcases() {
         
         if(idx <= (n_balls-3) / 2) {
             int c_idx = 2*idx + 1;
-            Q.push(make_tuple(times[c_idx], c_idx));
-            Q.push(make_tuple(times[c_idx+1], c_idx+1));
+            Q.push({times[c_idx], c_idx});
+            Q.push({times[c_idx+1], c_idx+1});
         }   
     }
     
