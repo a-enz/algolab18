@@ -5,10 +5,12 @@ placing knights [0]
 DONE on her majesty's secret service [0]
 goldfinger [0]
 
+clues [0] SOLUTION
+great game [0]
+
 bob's burden [1]
-clues [1]
 defensive line [1]
-empire strikes back [1]
+empire strikes back [1] SOLUTION
 bonus level [1]
 DONE motorcycles [1]
 coin tossing [1]
@@ -18,13 +20,12 @@ DONE h1n1 [1]
 DONE light at the museeum [1]
 search snippets [1]
 
-algocoon [2]
+algocoon [2] SOLUTION
 light the stage [2]
 evolution [2]
 octopussy [2]
 buddy selection [2]
 light pattern [2]
-great game [2]
 deck of cards [2]
 
 even matrices [3]
