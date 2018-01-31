@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cassert>
+#include "prettyprint.hpp"
 
 using namespace std;
 
@@ -10,9 +11,10 @@ typedef pair<long,long> Interval;
 
 long n_segments;
 
-int edf_shifted(int shift, vector<Interval>& intervals) {
+int edf_shifted(long shift, long end, vector<Interval>& intervals) {
 	//first shift all the intervals
 	assert(shift < n_segments);
+	end = (end + (n_segments - shift)) % n_segments;
 	for (int i = 0; i < intervals.size(); ++i)
 	{
 		//shift into the positive direction so
@@ -38,11 +40,23 @@ int edf_shifted(int shift, vector<Interval>& intervals) {
 	taken.push_back(intervals[0]);
 	for (int i = 1; i < intervals.size(); ++i)
 	{	
+	    if(intervals[i].second > end)
+	        break;
+	        
 		if(taken.back().second < intervals[i].first) {
 			taken.push_back(intervals[i]);
 		}
 	}
+	//cout << "shift " << shift << " end " << end << endl;
+	//cout << "taken "<< taken << endl;
 	return taken.size();
+}
+
+bool is_contained(int x, Interval& itv) {
+    if(itv.first <= itv.second)
+        return x >= itv.first && x <= itv.second;
+    else
+        return x <= itv.first || x >= itv.second;
 }
 
 
@@ -72,13 +86,13 @@ void testcase(){
 	sort(start.begin(), start.end());
 	sort(end.begin(), end.end());
 
-	//cout << start << endl;
-	//cout << end << endl;
+	////cout << start << endl;
+	////cout << end << endl;
 	//scan for a coversize 0 (later 10)
 	int shift = 0;
 	vector<long>::iterator is = start.begin(), ie = end.begin();
-	while(ie != end.end() && coversize > 0) {
-		//cout << "cover " << coversize << " at shift " << shift << endl;
+	while(ie != end.end() && coversize > 10) {
+		////cout << "cover " << coversize << " at shift " << shift << endl;
 		if(is == start.end() || *ie < *is) {
 			shift = *ie;
 			coversize--;	
@@ -95,9 +109,38 @@ void testcase(){
 			is++;
 		}
 	}
-	//cout << "cover " << coversize << " at shift " << shift << endl;
+	////cout << "cover " << coversize << " at shift " << shift << endl;
+	//cout << "coversize " << coversize << endl;
+	
+	//compute cover and non-cover intervals	  
+	  
+	vector<Interval> cover;
+	vector<Interval> intervals;  
+    for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
+    {
+        if(is_contained(shift, jedi_segment[i])) {
+            cover.push_back(jedi_segment[i]);
+        }
+        else {
+            intervals.push_back(jedi_segment[i]);
+        }
+    }
+    cout << "cover " << cover << endl;
+    cout << "intervals " << intervals << endl;
+    int count = 0;
+    assert(cover.size() <= 10);
+	if(cover.size() > 0) {
 
-	cout << edf_shifted(shift, jedi_segment) << endl;
+	    //for each cover interval compute edf
+	    for(Interval itv : cover) {
+	        count = max(count, edf_shifted(shift, itv.first, intervals) + 1);
+	    }
+	}
+	else {
+	    count = edf_shifted(shift, (shift + n_segments - 1) % n_segments, jedi_segment);
+	}
+	
+	cout << count << endl;
 }
 
 
