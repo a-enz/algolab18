@@ -11,52 +11,24 @@ typedef pair<long,long> Interval;
 
 long n_segments;
 
-int edf_shifted(long shift, long end, vector<Interval>& intervals) {
-	//first shift all the intervals
-	assert(shift < n_segments);
-	end = (end + (n_segments - shift)) % n_segments;
-	for (int i = 0; i < intervals.size(); ++i)
-	{
-		//shift into the positive direction so
-		//we don't have to deal with negativ modulo
-		//'long' should prevent overflows
-		long s = intervals[i].first + (n_segments - shift);
-		long e = intervals[i].second + (n_segments - shift);
-		intervals[i] = make_pair(s % n_segments, e % n_segments);
-	}
-
-	//sort by end
-	sort(intervals.begin(), intervals.end(), 
-		[](const Interval& a, const Interval& b) -> bool{
-			if(a.second == b.second)
-				return a.first > b.first; //shorter intervals first
-			return a.second < b.second; //earliest deadline
-		});
-
-	//edf
-
-	assert(intervals.size() > 0);
-	vector<Interval> taken;
-	taken.push_back(intervals[0]);
-	for (int i = 1; i < intervals.size(); ++i)
-	{	
-	    if(intervals[i].second > end)
-	        break;
-	        
-		if(taken.back().second < intervals[i].first) {
-			taken.push_back(intervals[i]);
+int edf(int idx, vector<Interval>& intervals) {
+    
+    int end = intervals[idx].first + n_segments;
+    vector<Interval> taken;
+	taken.push_back(intervals[idx]);
+	idx++;	
+    for (; idx < intervals.size() && intervals[idx].second < end; idx += 1)
+    {
+		if(taken.back().second < intervals[idx].first) {
+			taken.push_back(intervals[idx]);
 		}
-	}
-	//cout << "shift " << shift << " end " << end << endl;
-	//cout << "taken "<< taken << endl;
-	return taken.size();
+    }
+    return taken.size();
 }
 
-bool is_contained(int x, Interval& itv) {
-    if(itv.first <= itv.second)
-        return x >= itv.first && x <= itv.second;
-    else
-        return x <= itv.first || x >= itv.second;
+
+bool contains_point(long x, const Interval& itv) {
+    return x >= itv.first && x <= itv.second;
 }
 
 
@@ -65,82 +37,88 @@ void testcase(){
 	int n_jedi;
 	cin >> n_jedi >> n_segments;
 
-	vector<Interval> jedi_segment(n_jedi);
+	vector<Interval> jedi_segment;
+	jedi_segment.reserve(3*n_jedi);
 
 	int coversize = 0;
-	vector<long> start, end;
+	//store start and endpoints in the same list
+	vector< pair<long, int> > relevant;
 	for(int i=0; i<n_jedi; i++){
 		long a, b;
 		cin >> a >> b;
-		if(b < a || b == n_segments) //Interval wraps over 0
+	    a--;
+		b--; //convert to zero indexing 
+		if(b < a) {//Interval wraps around
 			coversize++;
-
-		a = a-1;
-		b = b-1; //convert to zero indexing 
-		jedi_segment[i] = make_pair(a, b);
-
-		start.push_back(a);
-		end.push_back((b+1) % n_segments); //add one so b is the non-inclusive end of the interval
+			jedi_segment.push_back(make_pair(a, n_segments + b));
+			jedi_segment.push_back(make_pair(n_segments + a, 2*n_segments + b));
+	    }
+	    else {
+	        jedi_segment.push_back(make_pair(a, b));
+			jedi_segment.push_back(make_pair(n_segments + a, n_segments + b));
+			jedi_segment.push_back(make_pair(2*n_segments + a, 2*n_segments + b));
+	    }
+		
+        //starts, be sure that start pairs are lexicographically before end pairs, thus (a, 0)
+        //this ensure the coversize in a segment where several intervals start and stop
+        //is not first decreased and then increased, thus giving a wrong minimum
+		relevant.push_back(make_pair(a, 0));
+		//end
+		relevant.push_back(make_pair(b, 1));
 	}
+    
+    sort(jedi_segment.begin(), jedi_segment.end(), 
+        [](const Interval& a, const Interval& b)->bool{
+            return a.second < b.second; //sort by earliest end
+        });
+	sort(relevant.begin(), relevant.end());
 
-	sort(start.begin(), start.end());
-	sort(end.begin(), end.end());
-
-	////cout << start << endl;
-	////cout << end << endl;
-	//scan for a coversize 0 (later 10)
+	//scan for smallest coversize
 	int shift = 0;
-	vector<long>::iterator is = start.begin(), ie = end.begin();
-	while(ie != end.end() && coversize > 10) {
-		////cout << "cover " << coversize << " at shift " << shift << endl;
-		if(is == start.end() || *ie < *is) {
-			shift = *ie;
-			coversize--;	
-			ie++;
-		}
-		else if(*is < *ie) {
-			shift = *is;
-			coversize++;
-			is++;
-		}
-		else { //*ie == *is
-			shift = *is;
-			ie++;
-			is++;
-		}
-	}
-	////cout << "cover " << coversize << " at shift " << shift << endl;
-	//cout << "coversize " << coversize << endl;
-	
-	//compute cover and non-cover intervals	  
-	  
-	vector<Interval> cover;
-	vector<Interval> intervals;  
-    for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
-    {
-        if(is_contained(shift, jedi_segment[i])) {
-            cover.push_back(jedi_segment[i]);
+	int min_coversize = coversize;
+	for(pair<long, int> r : relevant) {
+        if(r.second == 0) {
+            coversize++;
         }
         else {
-            intervals.push_back(jedi_segment[i]);
+            assert(r.second == 1);
+            coversize--;
+            if(coversize < min_coversize) {
+                min_coversize = coversize;
+                shift = r.first + 1; //non-inclusive end of the interval
+            }
         }
-    }
-    cout << "cover " << cover << endl;
-    cout << "intervals " << intervals << endl;
-    int count = 0;
-    assert(cover.size() <= 10);
-	if(cover.size() > 0) {
-
-	    //for each cover interval compute edf
-	    for(Interval itv : cover) {
-	        count = max(count, edf_shifted(shift, itv.first, intervals) + 1);
+	}
+	
+	shift += n_segments; //search in [m, 3m]
+	
+	int max_segments = 0;
+	if(min_coversize == 0) {
+	    //find first segment beginning after shift and do edf
+	    for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
+	    {
+	        if(jedi_segment[i].first > shift) {
+	            max_segments = edf(i, jedi_segment);
+	            break;
+	        }      
 	    }
 	}
 	else {
-	    count = edf_shifted(shift, (shift + n_segments - 1) % n_segments, jedi_segment);
-	}
-	
-	cout << count << endl;
+        //find the intervals that contain the shift and start an edf from there
+        int count = 0;
+        for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
+        {
+            if(contains_point(shift, jedi_segment[i])) {
+                count++;
+                max_segments = max(max_segments, edf(i, jedi_segment));
+            }
+        }    
+        cout << "count " << count << endl;
+        assert(count == min_coversize);
+    }
+
+    
+    cout << max_segments << endl;
 }
 
 
