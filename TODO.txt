@@ -5,7 +5,7 @@ placing knights [0]
 DONE on her majesty's secret service [0]
 goldfinger [0]
 
-clues [0] SOLUTION
+DONE clues [0] SOLUTION
 great game [0]
 
 bob's burden [1]
@@ -22,7 +22,7 @@ search snippets [1]
 
 algocoon [2] SOLUTION
 light the stage [2]
-evolution [2]
+DONE evolution [2]
 octopussy [2]
 buddy selection [2]
 light pattern [2]
