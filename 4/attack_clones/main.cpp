@@ -13,7 +13,7 @@ long n_segments;
 
 int edf(int idx, vector<Interval>& intervals) {
     
-    int end = intervals[idx].first + n_segments;
+    long end = intervals[idx].first + n_segments;
     vector<Interval> taken;
 	taken.push_back(intervals[idx]);
 	idx++;	
@@ -74,7 +74,7 @@ void testcase(){
 	sort(relevant.begin(), relevant.end());
 
 	//scan for smallest coversize
-	int shift = 0;
+	long shift = 0;
 	int min_coversize = coversize;
 	for(pair<long, int> r : relevant) {
         if(r.second == 0) {
@@ -93,31 +93,27 @@ void testcase(){
 	shift += n_segments; //search in [m, 3m]
 	
 	int max_segments = 0;
-	if(min_coversize == 0) {
-	    //find first segment beginning after shift and do edf
-	    for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
-	    {
-	        if(jedi_segment[i].first > shift) {
-	            max_segments = edf(i, jedi_segment);
-	            break;
-	        }      
-	    }
-	}
-	else {
-        //find the intervals that contain the shift and start an edf from there
-        int count = 0;
-        for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
-        {
-            if(contains_point(shift, jedi_segment[i])) {
-                count++;
-                max_segments = max(max_segments, edf(i, jedi_segment));
-            }
-        }    
-        cout << "count " << count << endl;
-        assert(count == min_coversize);
+
+    //find first segment beginning after shift and do edf
+    for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
+    {
+        if(jedi_segment[i].first >= shift) {
+            max_segments = edf(i, jedi_segment);
+            break;
+        }      
     }
 
-    
+    //We need to test for all intervals in the minimum cover, plus
+    //additionally test for a solution using none of the intervals
+    //in the minimum cover (which we did in the above loop)
+    //find the intervals that contain the shift and start an edf from there
+    for (unsigned int i = 0; i < jedi_segment.size(); i += 1)
+    {
+        if(contains_point(shift, jedi_segment[i])) {
+            max_segments = max(max_segments, edf(i, jedi_segment));
+        }
+    }    
+
     cout << max_segments << endl;
 }
 
