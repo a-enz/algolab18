@@ -1,35 +1,41 @@
-sith [0]
-DONE carsharing [0]
-DONE golden eye [0]
-placing knights [0]
-DONE on her majesty's secret service [0]
-DONE goldfinger [0]
-
-DONE clues [0] SOLUTION
-great game [0] SOLUTION
-
-bob's burden [1]
-defensive line [1]
-empire strikes back [1] SOLUTION
-bonus level [1]
-DONE motorcycles [1]
-coin tossing [1]
-kingdom defense [1]
-poker chips [1]
-DONE h1n1 [1]
-DONE light at the museeum [1]
-search snippets [1]
-
-algocoon [2] SOLUTION
-light the stage [2]
-DONE evolution [2]
-DONE octopussy [2]
-buddy selection [2]
-light pattern [2]
-deck of cards [2]
-
-even matrices [3]
-
-ThreeFold: Domino
-TreeFold: Christmas
+Likely topics for second exam part, and exercises adressing them:
+-DP: 
+    burning coins,
+    light pattern,
+    great game,
+    poker chips,
+    bonus level,
+    punch,
+    defensive line (also: sliding window),    LIKELY?
+    new tiles,
+    corbusier
+-sliding window: 
+    deck of cards, 
+    search snippets, 
+    hiking maps,
+    beach bars
+-components /reachability:
+    sith,
+    golden eye,
+    clues
+-MCMF
+    marathon,
+    algocoon,
+    real estate market,
+    canteen,
+    carsharing,
+    fleetrace,
+    casino royale
+-binary search
+    light the state (also: delaunay)
+    radiation (also: LP)
+-greedy/split and list: 
+    boats (edf), 
+    attack of the clones (edf), 
+    light at the museum (s&l),
+    high school teams (s&l),
+    planks (s&l)
+-dijkstra: 
+    ant challenge
+    bobs burden
 
