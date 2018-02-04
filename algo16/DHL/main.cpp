@@ -73,7 +73,7 @@ void testcases() {
     int n_parcels;
     cin >> n_parcels;
 
-    memo = Vmap(n_parcels+2, vector< vector< vector<int> > >(n_parcels+2,
+    memo = Vmap(2, vector< vector< vector<int> > >(n_parcels+2,
                             vector< vector<int> >(n_parcels+2,
                             vector<int>(n_parcels+2, -1))));
 
