@@ -1,41 +1,41 @@
 Likely topics for second exam part, and exercises adressing them:
 -DP: 
     burning coins,
-    light pattern,
-    great game,
-    poker chips,
+[ ] light pattern,
+[ ] great game,
+[ ] poker chips,
     bonus level,
-    punch,
-    defensive line (also: sliding window),    LIKELY?
+[ ] punch,
+[ ] defensive line (also: sliding window),    LIKELY?
     new tiles,
     corbusier
 -sliding window: 
     deck of cards, 
     search snippets, 
     hiking maps,
-    beach bars
+[ ] beach bars
 -components /reachability:
-    sith,
+[ ] sith,
     golden eye,
     clues
 -MCMF
-    marathon,
-    algocoon,
+    marathon (also: binary search),
+[ ] algocoon,
     real estate market,
     canteen,
     carsharing,
     fleetrace,
-    casino royale
+[ ] casino royale
 -binary search
-    light the state (also: delaunay)
+    light the stage (also: delaunay)
     radiation (also: LP)
 -greedy/split and list: 
-    boats (edf), 
+[ ] boats (edf), 
     attack of the clones (edf), 
     light at the museum (s&l),
     high school teams (s&l),
-    planks (s&l)
+[ ] planks (s&l)
 -dijkstra: 
     ant challenge
-    bobs burden
+[ ] bobs burden
 
