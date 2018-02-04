@@ -25,9 +25,14 @@ int itv_length(const pair<int, int>& itv) {
 
 int max_length(int pos, int n_taken) {
 
-    if(n_taken == m_att || pos == intervals.size())
+    if(memo[pos][n_taken] != -1)
+        return memo[pos][n_taken];
+
+    if(n_taken == m_att)
         return 0;
-        
+
+    if(pos >= intervals.size())
+        return INT_MIN;
 
     //general case
     //take
@@ -67,7 +72,7 @@ void testcases() {
         cin >> def[i];
     }
     
-    memo = Vmap(n_players + 2, vector<int>(n_players+2, -1));
+    memo = Vmap(n_players + 2, vector<int>(m_att+2, -1));
     
     //scanline to get relevant intervals
     intervals.clear();
@@ -90,16 +95,17 @@ void testcases() {
         }
     }
     
-    if(intervals.size() < m_att || edf() < m_att) {
+    if(intervals.size() < m_att) {
         cout << "fail\n";
         return;
     }
-    
-    cout << max_length(0, 0) << endl;
 
-    
-
-    
+    int len = max_length(0, 0);
+        
+    if(len < m_att)
+        cout << "fail" << endl;
+    else
+        cout << len << endl;
 }
 
 // Main function looping over the testcases
