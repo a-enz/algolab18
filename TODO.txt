@@ -6,7 +6,7 @@ Likely topics for second exam part, and exercises adressing them:
 [ ] poker chips,
     bonus level,
 [ ] punch,
-[ ] defensive line (also: sliding window),    LIKELY?
+[x] defensive line (also: sliding window),    LIKELY?
     new tiles,
     corbusier
 -sliding window: 
@@ -15,7 +15,7 @@ Likely topics for second exam part, and exercises adressing them:
     hiking maps,
 [ ] beach bars
 -components /reachability:
-[ ] sith,
+[x] sith,
     golden eye,
     clues
 -MCMF
@@ -34,7 +34,7 @@ Likely topics for second exam part, and exercises adressing them:
     attack of the clones (edf), 
     light at the museum (s&l),
     high school teams (s&l),
-[ ] planks (s&l)
+[x] planks (s&l)
 -dijkstra: 
     ant challenge
 [ ] bobs burden
