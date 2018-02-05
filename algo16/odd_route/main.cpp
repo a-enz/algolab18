@@ -1,117 +1,148 @@
+// ALGOLAB BGL Tutorial 3
+// Code snippets demonstrating 
+// - MinCostMaxFlow with negative edge costs using cycle_canceling
+// - MinCostMaxFlow with negative edge costs using successive_shortest_path_nonnegative_weights
+
+// Compile and run with one of the following:
+// g++ -std=c++11 -O2 bgl_mincostmaxflow.cpp -o bgl_mincostmaxflow; ./bgl_mincostmaxflow
+// g++ -std=c++11 -O2 -I path/to/boost_1_58_0 bgl_mincostmaxflow.cpp -o bgl_mincostmaxflow; ./bgl_mincostmaxflow
+
+// Includes
+// ========
+// STL includes
 #include <iostream>
-#include <vector>
-#include <algorithm>
-#include <climits>
+#include <cstdlib>
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
-#include "prettyprint.hpp"
+#include <boost/graph/cycle_canceling.hpp>
+#include <boost/graph/push_relabel_max_flow.hpp>
+#include <boost/graph/successive_shortest_path_nonnegative_weights.hpp>
+#include <boost/graph/find_flow_cost.hpp>
 // Namespaces
+using namespace boost;
 using namespace std;
 
+// BGL Graph definitions
+// ===================== 
+// Graph Type with nested interior edge properties for Cost Flow Algorithms
+typedef adjacency_list_traits<vecS, vecS, directedS> Traits;
+typedef adjacency_list<vecS, vecS, directedS, no_property,
+    property<edge_capacity_t, long,
+        property<edge_residual_capacity_t, long,
+            property<edge_reverse_t, Traits::edge_descriptor,
+                property <edge_weight_t, long> > > > > Graph;
+// Interior Property Maps
+typedef property_map<Graph, edge_capacity_t>::type      EdgeCapacityMap;
+typedef property_map<Graph, edge_weight_t >::type       EdgeWeightMap;
+typedef property_map<Graph, edge_residual_capacity_t>::type ResidualCapacityMap;
+typedef property_map<Graph, edge_reverse_t>::type       ReverseEdgeMap;
+typedef graph_traits<Graph>::vertex_descriptor          Vertex;
+typedef graph_traits<Graph>::edge_descriptor            Edge;
+typedef graph_traits<Graph>::out_edge_iterator  OutEdgeIt; // Iterator
 
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS,     // Use vecS for the VertexList! Choosing setS for the OutEdgeList disallows parallel edges.
-        boost::no_property,             // interior properties of vertices  
-        boost::property<boost::edge_weight_t, int>      // interior properties of edges
-        >                   Graph;
-typedef boost::property_map<Graph, boost::edge_weight_t>::type  WeightMap;  // property map to access the interior property edge_weight_t
-typedef boost::graph_traits<Graph>::edge_descriptor     Edge;
+// Custom Edge Adder Class, that holds the references
+// to the graph, capacity map, weight map and reverse edge map
+// ===============================================================
+class EdgeAdder {
+    Graph &G;
+    EdgeCapacityMap &capacitymap;
+    EdgeWeightMap &weightmap;
+    ReverseEdgeMap  &revedgemap;
 
-// Functions
-// ========= 
-void testcases() {
-    int n_edges, m_edges, source, target;
-    cin >> n_edges >> m_edges >> source >> target;
+public:
+    EdgeAdder(Graph & G, EdgeCapacityMap &capacitymap, EdgeWeightMap &weightmap, ReverseEdgeMap &revedgemap) 
+        : G(G), capacitymap(capacitymap), weightmap(weightmap), revedgemap(revedgemap) {}
 
-    //two 2-layer graphs
-    int V = 2*n_edges;
-    target = n_edges + target;
-    Graph G(V), G_R(V);    // Creates an empty graph on V vertices
-    WeightMap weightmap = get(boost::edge_weight, G);
-    WeightMap weightmap_rev = get(boost::edge_weight, G_R);
-
-    vector<int> looplen(V, 0);
-    for (int i = 0; i < m_edges; ++i)
-    {
-        int from, to, w;
-        cin >> from >> to >> w;
-        Edge e;
-        //create a graph to get distances from source
-        tie(e, std::ignore) = add_edge(from, n_edges + to, G);
+    void addEdge(int u, int v, long c, long w) {
+        Edge e, reverseE;
+        tie(e, tuples::ignore) = add_edge(u, v, G);
+        tie(reverseE, tuples::ignore) = add_edge(v, u, G);
+        capacitymap[e] = c;
         weightmap[e] = w;
-        tie(e, std::ignore) = add_edge(n_edges + from, to, G);
-        weightmap[e] = w;
-
-        //create a graph to get distances from target
-        tie(e, std::ignore) = add_edge(to, n_edges + from, G_R);
-        weightmap_rev[e] = w;
-        tie(e, std::ignore) = add_edge(n_edges + to, from, G_R);
-        weightmap_rev[e] = w;
-
-        if(from == to)
-            looplen[from] = w;
+        capacitymap[reverseE] = 0;
+        weightmap[reverseE] = -w;
+        revedgemap[e] = reverseE; 
+        revedgemap[reverseE] = e; 
     }
+};
 
-    vector<int> distmap(V);     // We must use at least one of these
-    vector<int> distmap_rev(V);
+int n;
 
-    boost::dijkstra_shortest_paths(G, source,
-        boost::distance_map(boost::make_iterator_property_map(    // concatenated by .
-                    distmap.begin(), get(boost::vertex_index, G))));
-
-    boost::dijkstra_shortest_paths(G_R, target,
-        boost::distance_map(boost::make_iterator_property_map(    // concatenated by .
-                    distmap_rev.begin(), get(boost::vertex_index, G_R))));
-
-    int min_odd_dist = INT_MAX;
-    int node = -1;
-    vector<int> distances;
-    for (int i = 0; i < n_edges; ++i)
-    {   
-        int dist_src, dist_trg;
-        //case 1) even/odd number of hops
-        dist_src = distmap[i];
-        dist_trg = distmap_rev[i];
-        if(dist_src != INT_MAX && dist_trg != INT_MAX && 
-            (dist_src + dist_trg) % 2 != 0) {
-            min_odd_dist = min(min_odd_dist, dist_src + dist_trg);
-        }    
-        //case 2) odd/even number of hops
-        dist_src = distmap[i+n_edges];
-        dist_trg = distmap_rev[i+n_edges];
-        if(dist_src != INT_MAX && dist_trg != INT_MAX && 
-            (dist_src + dist_trg) % 2 != 0) {
-            min_odd_dist = min(min_odd_dist, dist_src + dist_trg);
+//row, column, 0/1 depending on in or out vertex per field
+int get_index(int i, int isLengthOdd, int isValueOdd) {
+    if(isLengthOdd == 0) {
+        if(isValueOdd) {
+            return i;
+        } else {
+            return i+n;
         }
-        //case 3) odd/odd number of hops
-        dist_src = distmap[i+n_edges];
-        dist_trg = distmap_rev[i];
-        if(dist_src != INT_MAX && dist_trg != INT_MAX) { 
-            int dist = dist_src + dist_src + looplen[i];
-            if(dist % 2 != 0)
-                min_odd_dist = min(min_odd_dist, dist);
-        }
-        //case 3) even/even number of hops
-        dist_src = distmap[i];
-        dist_trg = distmap_rev[i+n_edges];
-        if(dist_src != INT_MAX && dist_trg != INT_MAX) { 
-            int dist = dist_src + dist_src + looplen[i];
-            if(dist % 2 != 0)
-                min_odd_dist = min(min_odd_dist, dist);
+    } else {
+        if(isValueOdd) {
+            return i+ 2*n;
+        } else {
+            return i+ 3*n;
         }
     }
-
-    if(min_odd_dist == INT_MAX)
-        cout << "no\n";
-    else
-        cout << min_odd_dist << endl;
 }
 
-// Main function looping over the testcases
+void test() {
+    int m;
+    cin >> n >> m;
+
+    // Create Graph and Maps
+    Graph G(4*n);
+    EdgeCapacityMap capacitymap = get(edge_capacity, G);
+    EdgeWeightMap weightmap = get(edge_weight, G);
+    ReverseEdgeMap revedgemap = get(edge_reverse, G);
+    ResidualCapacityMap rescapacitymap = get(edge_residual_capacity, G);
+    EdgeAdder eaG(G, capacitymap, weightmap, revedgemap);
+    
+    Vertex src = add_vertex(G);
+    Vertex sink = add_vertex(G);
+    
+    // Add edges to src and sink
+    int start, end;
+    cin >> start >> end;
+    eaG.addEdge(src,get_index(start,0,0),1,0);
+    eaG.addEdge(get_index(end,1,1),sink,1,0);
+       
+    //connect vertices
+    for (unsigned int i = 0; i < m; i += 1) {
+        int weight;
+        cin >> start >> end >> weight;
+        if(weight%2 == 0) {
+            eaG.addEdge(get_index(start,0,0),get_index(end,1,0),1,weight);
+            eaG.addEdge(get_index(start,0,1),get_index(end,1,1),1,weight);
+            eaG.addEdge(get_index(start,1,0),get_index(end,0,0),1,weight);
+            eaG.addEdge(get_index(start,1,1),get_index(end,0,1),1,weight);
+        } else {
+            eaG.addEdge(get_index(start,0,0),get_index(end,1,1),1,weight);
+            eaG.addEdge(get_index(start,0,1),get_index(end,1,0),1,weight);
+            eaG.addEdge(get_index(start,1,0),get_index(end,0,1),1,weight);
+            eaG.addEdge(get_index(start,1,1),get_index(end,0,0),1,weight);
+        }
+    }
+
+    // Run the algorithm
+    successive_shortest_path_nonnegative_weights(G, src, sink);
+    OutEdgeIt e, eend;
+    int flow = 0;
+    for(tie(e, eend) = out_edges(vertex(src,G), G); e != eend; ++e) {
+        flow += capacitymap[*e] - rescapacitymap[*e];
+    }
+    if(flow == 1) {
+        int cost = find_flow_cost(G);
+        cout << cost << endl;
+    } else {
+        cout << "no" << endl;
+    }
+    
+}
+
 int main() {
-    ios_base::sync_with_stdio(false);
-    int T;  cin >> T;   // First input line: Number of testcases.
-    while(T--)  testcases();
+    int T;
+    cin >> T;
+    while(T--)
+        test();
     return 0;
 }
-

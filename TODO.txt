@@ -5,7 +5,7 @@ Likely topics for second exam part, and exercises adressing them:
 [ ] great game,
 [ ] poker chips,
     bonus level,
-[ ] punch,
+[x] punch,
 [x] defensive line (also: sliding window),    LIKELY?
     new tiles,
     corbusier
@@ -25,7 +25,7 @@ Likely topics for second exam part, and exercises adressing them:
     canteen,
     carsharing,
     fleetrace,
-[ ] casino royale
+[x] casino royale
 -binary search
     light the stage (also: delaunay)
     radiation (also: LP)
