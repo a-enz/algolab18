@@ -3,7 +3,7 @@ Likely topics for second exam part, and exercises adressing them:
     burning coins,
 [ ] light pattern,
 [ ] great game,
-[ ] poker chips,
+[x] poker chips,
     bonus level,
 [x] punch,
 [x] defensive line (also: sliding window),    LIKELY?
